@@ -1,0 +1,88 @@
+"""
+Script that caches train data for future training
+"""
+
+from __future__ import division
+
+import os
+import pandas as pd
+import extra_functions
+from tqdm import tqdm
+import h5py
+import numpy as np
+import tifffile as tiff
+
+data_path = '../data'
+
+gs = pd.read_csv(os.path.join(data_path, 'grid_sizes.csv'), names=['ImageId', 'Xmax', 'Ymin'], skiprows=1)
+
+shapes = pd.read_csv(os.path.join(data_path, '3_shapes.csv'))
+test_id = ['6110_3_1', '6120_2_2', '6140_3_1', '6110_1_2', '6110_4_0', '6120_2_0', '6120_2_0']
+
+unlabel_id =['6010_4_0','6010_4_1','6010_4_2']
+
+def cache_train_16():
+    train_wkt = pd.read_csv(os.path.join(data_path, 'train_wkt_v4.csv'))
+    train_wkt = train_wkt[~train_wkt['ImageId'].isin(test_id)]
+
+    print('num_label_train_images =', train_wkt['ImageId'].nunique())
+    print('num_unlabel_train_images =', len(unlabel_id))
+
+    train_shapes = shapes[shapes['image_id'].isin(train_wkt['ImageId'].unique())]
+
+    min_train_height = train_shapes['height'].min()
+    min_train_width = train_shapes['width'].min()
+
+    num_train = train_shapes.shape[0]
+
+    image_rows = min_train_height
+    image_cols = min_train_width
+
+    num_channels = 3
+
+    num_mask_channels = 10
+
+    num_unlabeltrain = len(unlabel_id)
+
+    f = h5py.File(os.path.join(data_path, 'train_label.h5'), 'w', compression='blosc:lz4', compression_opts=9)
+    f_unlabel = h5py.File(os.path.join(data_path, 'train_unlabel.h5'), 'w', compression='blosc:lz4', compression_opts=9)
+    imgs_unlabel = f_unlabel.create_dataset('train', (num_unlabeltrain, num_channels, image_rows, image_cols), dtype=np.float16)
+
+    imgs = f.create_dataset('train', (num_train, num_channels, image_rows, image_cols), dtype=np.float16)
+    imgs_mask = f.create_dataset('train_mask', (num_train, num_mask_channels, image_rows, image_cols), dtype=np.uint8)
+
+    ids = []
+    unlabel_ids=[]
+
+    i = 0
+    for image_id in tqdm(sorted(train_wkt['ImageId'].unique())):
+        image = tiff.imread("../data/three_band/{}.tif".format(image_id)) / 2047.0
+        #image = extra_functions.read_image_16(image_id)
+        _, height, width = image.shape
+        imgs[i] = image[:, :min_train_height, :min_train_width]
+        imgs_mask[i] = extra_functions.generate_mask(image_id,
+                                                     height,
+                                                     width,
+                                                     num_mask_channels=num_mask_channels,
+                                                     train=train_wkt)[:, :min_train_height, :min_train_width]
+
+        ids += [image_id]
+        i += 1
+
+    # fix from there: https://github.com/h5py/h5py/issues/441
+    f['train_ids'] = np.array(ids).astype('|S9')
+    f.close()
+
+    i=0
+    for image_id in tqdm(unlabel_id):
+        image = tiff.imread("../data/three_band/{}.tif".format(image_id)) / 2047.0
+        _, height, width = image.shape
+        imgs_unlabel[i] = image[:, :min_train_height, :min_train_width]
+        unlabel_ids += [image_id]
+        i += 1
+    f_unlabel['train_ids'] = np.array(unlabel_ids).astype('|S9')
+    f_unlabel.close()
+
+
+if __name__ == '__main__':
+    cache_train_16()
