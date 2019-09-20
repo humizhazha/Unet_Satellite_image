@@ -229,9 +229,7 @@ class model(object):
     max_loss = 100
     for epoch in xrange(int(F.epoch)):
         idx = 0
-        print(11111)
         batch_iter_train = data.batch_train()
-        print(2222222)
         total_val_loss = 0
         total_train_loss_CE = 0
         total_train_loss_UL = 0
@@ -240,13 +238,11 @@ class model(object):
 
         for patches_lab, patches_unlab, labels in batch_iter_train:
             # Network update
-            print(3333333)
             sample_z_gen = np.random.uniform(-1, 1, [F.batch_size, F.noise_dim]).astype(np.float32)
-            print(66666666)
 
             _ = self.sess.run(d_optim, feed_dict={self.patches_lab: patches_lab, self.patches_unlab: patches_unlab,
                                                   self.z_gen: sample_z_gen, self.labels: labels, self.phase: True})
-            print(444444444)
+
 
             _ = self.sess.run(g_optim, feed_dict={self.patches_unlab: patches_unlab, self.z_gen: sample_z_gen,
                                                       self.z_gen: sample_z_gen, self.phase: True})
@@ -305,8 +301,8 @@ class model(object):
               np.max(predictions_val))
 
         # To stitch back the patches into an entire image
-        val_image_pred = recompose2D_overlap(predictions_val, 144, 192, 256, self.extraction_step[0],
-                                             self.extraction_step[1], self.extraction_step[2])
+        val_image_pred = recompose2D_overlap(predictions_val, 3345, 3338, self.extraction_step[0],
+                                             self.extraction_step[1])
         val_image_pred = val_image_pred.astype('uint8')
 
         print("Shape of Predicted Output Groundtruth Images:", val_image_pred.shape,
@@ -384,7 +380,7 @@ def get_patches_lab(threeband_vols,label_vols, extraction_step,
                                         datype="uint8")
 
         # Select only those who are important for processing
-        valid_idxs = np.where(np.count_nonzero(label_patches, axis=(1, 2)) > 10000)
+        valid_idxs = np.where(np.count_nonzero(label_patches, axis=(1, 2)) > 100)
 
         # Filtering extracted patches
         label_patches = label_patches[valid_idxs]
@@ -406,6 +402,8 @@ To preprocess the labeled training data
 """
 def preprocess_dynamic_lab(dir,num_classes, extraction_step,patch_shape,num_images_training,training_set,
                                 validating=False,testing=False,num_images_testing=7):
+    if validating==True:
+        f = h5py.File(os.path.join("../data", 'train_label.h5'), 'r')
     f = h5py.File(os.path.join("../data", 'train_label.h5'), 'r')
 
     label_vols = np.array(f['train'])[:, 2]
@@ -449,7 +447,7 @@ def get_patches_unlab(unlabel_vols, extraction_step, patch_shape, dir):
 
         # Select only those who are important for processing
         # Sampling strategy: reject samples which labels are mostly 0 and have less than 6000 nonzero elements
-        valid_idxs = np.where(np.count_nonzero(label_patches, axis=(1, 2)) > 10000)
+        valid_idxs = np.where(np.count_nonzero(label_patches, axis=(1, 2)) > 100)
 
         label_patches = label_patches[valid_idxs]
         x = np.vstack((x, np.zeros((len(label_patches), patch_shape_1d, patch_shape_1d, 2))))

@@ -3,12 +3,13 @@ import pprint
 import tensorflow as tf
 
 from model import model
+from test import *
 
 
 
 # Define flags
 flags = tf.app.flags
-flags.DEFINE_integer("epoch", 300, "Number of training epochs (default: 300)")
+flags.DEFINE_integer("epoch", 3, "Number of training epochs (default: 300)")
 flags.DEFINE_float("learning_rate_D", 0.0001, "Learning rate of Adam optimizer for Discriminator (default: 0.0001)")
 flags.DEFINE_float("learning_rate_G", 0.0001, "Learning rate of Adam optimizer for Generator (default: 0.0001)")
 flags.DEFINE_float("learning_rate_E", 0.0001, "Learning rate of Adam optimizer for Encoder (default: 0.0001)")
@@ -31,8 +32,8 @@ flags.DEFINE_string("best_checkpoint_dir", "checkpoint/best", "Directory name to
 flags.DEFINE_string("results_dir", "results/", "Directory name to save the results [results]")
 
 flags.DEFINE_boolean("load_chkpt", False, "True for loading saved checkpoint")
-flags.DEFINE_boolean("training", True, "True for Training ")
-flags.DEFINE_boolean("testing", False, "True for Testing ")
+flags.DEFINE_boolean("training", False, "True for Training ")
+flags.DEFINE_boolean("testing", True, "True for Testing ")
 flags.DEFINE_boolean("badGAN", False, "True if you want to run badGAN based model ")
 
 flags.DEFINE_integer("batch_size", 18, "The size of batch images [64]")
@@ -61,9 +62,9 @@ def main(_):
   gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=FLAGS.gpu_frac)
 
   # Parameters of extracted training and testing patches
-  patch_shape=(512,512)
-  extraction_step=(256,256)
-  testing_extraction_shape=(8,8)
+  patch_shape=(64,64)
+  extraction_step=(16,16)
+  testing_extraction_shape=(32,32)
   test_ids_sets = ['6110_3_1', '6120_2_2', '6140_3_1', '6110_1_2', '6110_4_0', '6120_2_0', '6120_2_0']
   training_ids_sets = ['6040_2_2', '6090_2_0', '6040_1_3']
 
@@ -73,9 +74,9 @@ def main(_):
       network = model(sess,patch_shape,extraction_step,test_ids_sets,training_ids_sets)
       network.build_model()
       network.train()
-  # if FLAGS.testing:
-  #     # For testing the trained network
-  #     test(patch_shape,testing_extraction_shape)
+  if FLAGS.testing:
+      # For testing the trained network
+      test(patch_shape,testing_extraction_shape)
 
 
 if __name__ == '__main__':
