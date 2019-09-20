@@ -281,14 +281,14 @@ class model(object):
 
         # Prediction of validation patches
         for batch in range(total_batches):
-            patches_feed = patches_val[batch * F.batch_size:(batch + 1) * F.batch_size, :, :, :, :]
-            labels_feed = labels_val_patch[batch * F.batch_size:(batch + 1) * F.batch_size, :, :, :]
+            patches_feed = patches_val[batch * F.batch_size:(batch + 1) * F.batch_size, :, :, :]
+            labels_feed = labels_val_patch[batch * F.batch_size:(batch + 1) * F.batch_size, :, :]
             feed_dict = {self.patches_lab: patches_feed,
                          self.labels: labels_feed, self.phase: False}
             preds = self.Val_output.eval(feed_dict)
             val_loss = self.d_loss_lab.eval(feed_dict)
 
-            predictions_val[batch * F.batch_size:(batch + 1) * F.batch_size, :, :, :] = preds
+            predictions_val[batch * F.batch_size:(batch + 1) * F.batch_size, :, :] = preds
             print(("Validated Patch:[%8d/%8d]") % (batch, total_batches))
             total_val_loss = total_val_loss + val_loss
 
@@ -310,8 +310,8 @@ class model(object):
               np.unique(labels_val),
               np.mean(val_image_pred), np.mean(labels_val))
 
-        pred2d = np.reshape(val_image_pred, (val_image_pred.shape[0] * 144 * 192 * 256))
-        lab2d = np.reshape(labels_val, (labels_val.shape[0] * 144 * 192 * 256))
+        pred2d = np.reshape(val_image_pred, (val_image_pred.shape[0] * 3345*3338))
+        lab2d = np.reshape(labels_val, (labels_val.shape[0] * 3345*3338))
 
         # For printing the validation results
         F1_score = f1_score(lab2d, pred2d, [0, 1, 2, 3], average=None)
@@ -368,7 +368,7 @@ def extract_patches(volume, patch_shape, extraction_step,datype='float32'):
 To extract labeled patches from array of 3D labeled images
 """
 def get_patches_lab(threeband_vols,label_vols, extraction_step,
-                    patch_shape, num_images_training):
+                    patch_shape,validating, num_images_training):
     patch_shape_1d = patch_shape[0]
     # Extract patches from input volumes and ground truth
     x = np.zeros((0, patch_shape_1d, patch_shape_1d, 2), dtype="float32")
@@ -380,7 +380,10 @@ def get_patches_lab(threeband_vols,label_vols, extraction_step,
                                         datype="uint8")
 
         # Select only those who are important for processing
-        valid_idxs = np.where(np.count_nonzero(label_patches, axis=(1, 2)) > 100)
+        if validating:
+            valid_idxs = np.where(np.sum(label_patches, axis=(1, 2)) != -1)
+        else:
+            valid_idxs = np.where(np.count_nonzero(label_patches, axis=(1, 2)) > 1000)
 
         # Filtering extracted patches
         label_patches = label_patches[valid_idxs]
@@ -403,12 +406,13 @@ To preprocess the labeled training data
 def preprocess_dynamic_lab(dir,num_classes, extraction_step,patch_shape,num_images_training,training_set,
                                 validating=False,testing=False,num_images_testing=7):
     if validating==True:
+        f = h5py.File(os.path.join("../data", 'validation.h5'), 'r')
+    else:
         f = h5py.File(os.path.join("../data", 'train_label.h5'), 'r')
-    f = h5py.File(os.path.join("../data", 'train_label.h5'), 'r')
 
     label_vols = np.array(f['train'])[:, 2]
 
-    label = np.array(f['train_mask'])[:, 3]
+    label = np.array(f['train_mask'])[:, 4]
 
     # label_mean = X_train.mean()
     # label_std = X_train.std()
@@ -418,7 +422,7 @@ def preprocess_dynamic_lab(dir,num_classes, extraction_step,patch_shape,num_imag
     #     threeband_vols[i] = ((threeband_vols[i] - np.min(threeband_vols[i])) /
     #                                 (np.max(threeband_vols[i])-np.min(threeband_vols[i])))*255
 
-    x,y=get_patches_lab(label_vols,label,extraction_step,patch_shape,num_images_training=num_images_training)
+    x,y=get_patches_lab(label_vols,label,extraction_step,patch_shape,validating, num_images_training=num_images_training)
     print("Total Extracted Labelled Patches Shape:",x.shape,y.shape)
     if testing:
         return x, label
@@ -439,7 +443,7 @@ def get_patches_unlab(unlabel_vols, extraction_step, patch_shape, dir):
     #label_ref = np.empty((1, 3345, 3338), dtype="uint8")
     x = np.zeros((0, patch_shape_1d, patch_shape_1d, 2))
     f = h5py.File(os.path.join("../data", 'train_label.h5'), 'r')
-    label_ref = np.array(f['train_mask'])[:, 3][0]
+    label_ref = np.array(f['train_mask'])[:, 4][0]
     for idx in range(len(unlabel_vols)):
         x_length = len(x)
         print(("Extracting Unlabel Patches from Image %2d ....") % (idx+1))
@@ -447,7 +451,7 @@ def get_patches_unlab(unlabel_vols, extraction_step, patch_shape, dir):
 
         # Select only those who are important for processing
         # Sampling strategy: reject samples which labels are mostly 0 and have less than 6000 nonzero elements
-        valid_idxs = np.where(np.count_nonzero(label_patches, axis=(1, 2)) > 100)
+        valid_idxs = np.where(np.count_nonzero(label_patches, axis=(1, 2)) > 1000)
 
         label_patches = label_patches[valid_idxs]
         x = np.vstack((x, np.zeros((len(label_patches), patch_shape_1d, patch_shape_1d, 2))))
