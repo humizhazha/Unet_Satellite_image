@@ -1,0 +1,11 @@
+scipy
+numpy
+nibabel
+scikit-learn
+SimpleITK
+nipype
+tifffile
+cv2
+tqdm
+pandas
+numba
