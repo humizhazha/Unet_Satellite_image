@@ -129,11 +129,11 @@ def get_patches_lab(threeband_vols,label_vols, extraction_step,
 """
 To preprocess the labeled training data
 """
-def preprocess_dynamic_lab(dir,num_classes, extraction_step,patch_shape,num_images_training,
+def preprocess_dynamic_lab(dir,num_classes, extraction_step,patch_shape,num_images_training, type,
                                 validating=False,testing=False,num_images_testing=7):
     f = h5py.File(os.path.join("../data", 'test.h5'), 'r')
     test_vols = np.array(f['test'])[:, 2]
-    label = np.array(f['test_mask'])[:, 3]
+    label = np.array(f['test_mask'])[:, type]
 
     x,y=get_patches_lab(test_vols,label,extraction_step,patch_shape,num_images_training=num_images_training)
     print("Total Extracted Test Patches Shape:",x.shape,y.shape)
@@ -172,7 +172,7 @@ def test(patch_shape, extraction_step):
             # Get patches from test images
             patches_test, labels_test = preprocess_dynamic_lab(F.data_directory,
                                                                F.num_classes, extraction_step, patch_shape,
-                                                               F.number_train_images, validating=F.training,
+                                                               F.number_train_images, F.type_number,validating=F.training,
                                                                testing=F.testing,
                                                                num_images_testing=F.number_test_images)
             total_batches = int(patches_test.shape[0] / F.batch_size)
@@ -197,7 +197,7 @@ def test(patch_shape, extraction_step):
                   np.max(predictions_test))
 
             # To stitch the image back
-            images_pred = recompose2D_overlap(predictions_test, 3345,3338, extraction_step[0],extraction_step[1])
+            images_pred = recompose2D_overlap(predictions_test, 3328,3328, extraction_step[0],extraction_step[1])
 
             print("Shape of Predicted Output Groundtruth Images:", images_pred.shape,
                   np.min(images_pred), np.max(images_pred),
@@ -205,13 +205,13 @@ def test(patch_shape, extraction_step):
 
             # To save the images
             for i in range(F.number_test_images):
-                pred2d = np.reshape(images_pred[i], (3345*3338))
-                lab2d = np.reshape(labels_test[i], (3345*3338))
-                save_image(F.results_dir, images_pred[i], F.number_train_images + i + 2)
+                pred2d = np.reshape(images_pred[i], (3328*3328))
+                lab2d = np.reshape(labels_test[i], (3328*3328))
+                #save_image(F.results_dir, images_pred[i], F.number_train_images + i + 2)
 
             # Evaluation
-            pred2d = np.reshape(images_pred, (images_pred.shape[0] * 3345*3338))
-            lab2d = np.reshape(labels_test, (labels_test.shape[0] * 3345*3338))
+            pred2d = np.reshape(images_pred, (images_pred.shape[0] * 3328*3328))
+            lab2d = np.reshape(labels_test, (labels_test.shape[0] * 3328*3328))
 
             F1_score = f1_score(lab2d, pred2d, [0, 1, 2, 3], average=None)
             print("Testing Dice Coefficient.... ")

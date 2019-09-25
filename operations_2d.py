@@ -192,10 +192,8 @@ def recompose2D_overlap(preds, img_w, img_d, stride_w, stride_d):
   for i in range(N_full_imgs):
       for w in range((img_w-patch_w)//stride_w+1):
         for d in range((img_d-patch_d)//stride_d+1):
-          raw_pred_martrix[i,w*stride_w:(w*stride_w)+patch_w,\
-                                d*stride_d:(d*stride_d)+patch_d]+=preds[k]
-          raw_sum[i, w*stride_w:(w*stride_w)+patch_w,\
-                            d*stride_d:(d*stride_d)+patch_d]+=1.0
+          raw_pred_martrix[i,w*stride_w:(w*stride_w)+patch_w,d*stride_d:(d*stride_d)+patch_d]+=preds[k]
+          raw_sum[i, w*stride_w:(w*stride_w)+patch_w,d*stride_d:(d*stride_d)+patch_d]+=1.0
           k+=1
   assert(k==preds.shape[0])
   #To check for non zero sum matrix
