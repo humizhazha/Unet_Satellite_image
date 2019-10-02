@@ -6,6 +6,7 @@ import numpy as np
 from sklearn.metrics import f1_score
 import h5py
 import sys
+import pickle
 
 sys.path.insert(0, '../preprocess/')
 sys.path.insert(0, '../lib/')
@@ -20,7 +21,10 @@ F = tf.app.flags.FLAGS
 
 # Function to save predicted images as .nii.gz file in results folder
 def save_image(direc, i, num):
-    print(111)
+    file_name = 'result'+str(num)+'.pickle'
+    filehandler = open(file_name,'wb')
+    pickle.dump(i,filehandler)
+    filehandler.close()
 
 
 # Same discriminator network as in model file
@@ -163,7 +167,7 @@ def test(patch_shape, extraction_step):
         saver = tf.train.Saver()
         with tf.Session() as sess:
             try:
-                load_model(F.checkpoint_dir, sess, saver)
+                load_model("result1/", sess, saver)
                 print(" Checkpoint loaded succesfully!....\n")
             except:
                 print(" [!] Checkpoint loading failed!....\n")
@@ -207,18 +211,17 @@ def test(patch_shape, extraction_step):
             for i in range(F.number_test_images):
                 pred2d = np.reshape(images_pred[i], (3328*3328))
                 lab2d = np.reshape(labels_test[i], (3328*3328))
-                #save_image(F.results_dir, images_pred[i], F.number_train_images + i + 2)
+                save_image(F.results_dir, images_pred[i], F.number_train_images + i + 2)
 
             # Evaluation
             pred2d = np.reshape(images_pred, (images_pred.shape[0] * 3328*3328))
             lab2d = np.reshape(labels_test, (labels_test.shape[0] * 3328*3328))
 
-            F1_score = f1_score(lab2d, pred2d, [0, 1, 2, 3], average=None)
+            F1_score = f1_score(lab2d, pred2d, [0, 1], average=None)
             print("Testing Dice Coefficient.... ")
             print("Background:", F1_score[0])
             print("CSF:", F1_score[1])
-            print("GM:", F1_score[2])
-            print("WM:", F1_score[3])
+            
 
     return
 

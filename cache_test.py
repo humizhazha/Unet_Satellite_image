@@ -30,8 +30,8 @@ def cache_test():
 
     num_train = train_shapes.shape[0]
 
-    image_rows = 3345
-    image_cols = 3338
+    image_rows = 3328
+    image_cols = 3328
 
     num_channels = 3
     num_mask_channels = 10
@@ -48,12 +48,12 @@ def cache_test():
     for image_id in tqdm(sorted(train_wkt['ImageId'].unique())):
         image = tiff.imread("../data/three_band/{}.tif".format(image_id)) / 2047.0
         _, height, width = image.shape
-        imgs[i] = image[:, :3345, :3338]
+        imgs[i] = image[:, :3328, :3328]
         imgs_mask[i] = extra_functions.generate_mask(image_id,
                                                      height,
                                                      width,
                                                      num_mask_channels=num_mask_channels,
-                                                     train=train_wkt)[:, :3345, :3338]
+                                                     train=train_wkt)[:, :3328, :3328]
 
         ids += [image_id]
         i += 1

@@ -19,7 +19,7 @@ gs = pd.read_csv(os.path.join(data_path, 'grid_sizes.csv'), names=['ImageId', 'X
 shapes = pd.read_csv(os.path.join(data_path, '3_shapes.csv'))
 train_id = ['6110_3_1', '6120_2_2', '6140_3_1', '6110_1_2', '6110_4_0']
 validation_id = ['6120_2_0']
-unlabel_id =['6010_4_0','6010_4_1','6010_4_2']
+unlabel_id =['6010_4_0','6010_4_1','6010_4_2','6150_2_3','6170_0_4','6170_4_1']
 
 def cache_train_16():
     train_wkt = pd.read_csv(os.path.join(data_path, 'train_wkt_v4.csv'))
@@ -32,8 +32,8 @@ def cache_train_16():
 
     train_shapes = shapes[shapes['image_id'].isin(train_wkt['ImageId'].unique())]
     sample_shapes = shapes[shapes['image_id'].isin(sample_wkt['ImageId'].unique())]
-    min_train_height = sample_shapes['height'].min()
-    min_train_width = sample_shapes['width'].min()
+    min_train_height = 3328
+    min_train_width = 3328
 
 
 
