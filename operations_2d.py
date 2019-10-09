@@ -10,12 +10,12 @@ def gaussian_nll(mu, log_sigma, noise):
     return tf.reduce_mean(NLL)
 
 
-def conv2d(input_, output_dim,k_d=3, k_h=3, k_w=3,
-                  s_d=1, s_h=1, s_w=1, stddev=0.05, name="conv3d"):
+def conv2d(input_, output_dim,k_d=3, k_w=3,
+                  s_d=1, s_w=1, stddev=0.05, name="conv2d"):
   with tf.variable_scope(name):
-    w = tf.get_variable('w', [k_d, k_h, k_w, input_.get_shape()[-1], output_dim],
+    w = tf.get_variable('w', [k_d, k_w, input_.get_shape()[-1], output_dim],
                               initializer=tf.truncated_normal_initializer(stddev=stddev))
-    conv = tf.nn.conv3d(input_, w, strides=[1, s_d, s_h, s_w, 1], padding='SAME')
+    conv = tf.nn.conv2d(input_, w, strides=[1, s_d, s_w, 1], padding='SAME')
     biases = tf.get_variable('biases', [output_dim],
                                     initializer=tf.constant_initializer(0.0))
     conv = tf.reshape(tf.nn.bias_add(conv, biases), conv.get_shape())
