@@ -54,6 +54,8 @@ def cache_train_16():
     f_unlabel = h5py.File(os.path.join(data_path, 'train_unlabel.h5'), 'w', compression='blosc:lz4', compression_opts=9)
     f_validation = h5py.File(os.path.join(data_path, 'validation.h5'), 'w', compression='blosc:lz4', compression_opts=9)
     imgs_unlabel = f_unlabel.create_dataset('train', (num_unlabeltrain, num_channels, image_rows, image_cols), dtype=np.float16)
+    imgs_unlabel_mask = f_unlabel.create_dataset('train_mask', (num_unlabeltrain, num_mask_channels, image_rows, image_cols),
+                                            dtype=np.float16)
 
     imgs = f.create_dataset('train', (num_train, num_channels, image_rows, image_cols), dtype=np.float16)
     imgs_mask = f.create_dataset('train_mask', (num_train, num_mask_channels, image_rows, image_cols), dtype=np.uint8)
@@ -93,6 +95,12 @@ def cache_train_16():
         image = tiff.imread(img_fpath.format(image_id)) / 2047.0
         _, height, width = image.shape
         imgs_unlabel[i] = image[:, :min_train_height, :min_train_width]
+        imgs_unlabel_mask[i] = extra_functions.generate_mask(image_id,
+                                                     height,
+                                                     width,
+                                                     num_mask_channels=num_mask_channels,
+                                                     train=train_wkt)[:, :min_train_height, :min_train_width]
+
         unlabel_ids += [image_id]
         i += 1
     f_unlabel['train_ids'] = np.array(unlabel_ids).astype('|S9')
