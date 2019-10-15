@@ -12,7 +12,7 @@ import numpy as np
 import tifffile as tiff
 import extra_functions
 
-data_path = '../data'
+data_path = '../../Data/dstl_data'
 
 gs = pd.read_csv(os.path.join(data_path, 'grid_sizes.csv'), names=['ImageId', 'Xmax', 'Ymin'], skiprows=1)
 
@@ -36,7 +36,6 @@ def cache_test():
     num_channels = 3
     num_mask_channels = 10
 
-
     f = h5py.File(os.path.join(data_path, 'test.h5'), 'w', compression='blosc:lz4', compression_opts=9)
 
     imgs = f.create_dataset('test', (num_train, num_channels, image_rows, image_cols), dtype=np.float16)
@@ -46,7 +45,8 @@ def cache_test():
 
     i = 0
     for image_id in tqdm(sorted(train_wkt['ImageId'].unique())):
-        image = tiff.imread("../data/three_band/{}.tif".format(image_id)) / 2047.0
+        img_fpath = os.path.join(data_path, 'three_band', '{}.tif')
+        image = tiff.imread(img_fpath.format(image_id)) / 2047.0
         _, height, width = image.shape
         imgs[i] = image[:, :3328, :3328]
         imgs_mask[i] = extra_functions.generate_mask(image_id,

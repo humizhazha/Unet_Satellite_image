@@ -42,7 +42,7 @@ while decrement:
         maxInt = int(maxInt/10)
         decrement = True
 
-data_path = '../data'
+data_path = '../../Data/dstl_data'
 train_wkt = pd.read_csv(os.path.join(data_path, 'train_wkt_v4.csv'))
 gs = pd.read_csv(os.path.join(data_path, 'grid_sizes.csv'), names=['ImageId', 'Xmax', 'Ymin'], skiprows=1)
 shapes = pd.read_csv(os.path.join(data_path, '3_shapes.csv'))
@@ -198,10 +198,50 @@ def get_shape(image_id, band=3):
 
 
 def read_image_16(image_id):
-    img_3 = np.transpose(tiff.imread("../data/three_band/{}.tif".format(image_id)), (1, 2, 0)) / 2047.0
-    result = np.transpose(img_3), (2, 0, 1)
-    print(result)
-    return result
+    sixteen_band_mtif_path = os.path.join(data_path, 'sixteen_band', '{}_M.tif')
+    sixteen_band_ptif_path = os.path.join(data_path, 'sixteen_band', '{}_P.tif')
+    three_band_tif_path = os.path.join(data_path, 'three_band', '{}.tif')
+
+    img_m = np.transpose(tiff.imread(sixteen_band_mtif_path.format(image_id)), (1, 2, 0)) / 2047.0
+    img_3 = np.transpose(tiff.imread(three_band_tif_path.format(image_id)), (1, 2, 0)) / 2047.0
+    img_p = tiff.imread(sixteen_band_ptif_path.format(image_id)).astype(np.float32) / 2047.0
+
+    height, width, _ = img_3.shape
+
+    rescaled_M = cv2.resize(img_m, (width, height), interpolation=cv2.INTER_CUBIC)
+    rescaled_P = cv2.resize(img_p, (width, height), interpolation=cv2.INTER_CUBIC)
+
+    rescaled_M[rescaled_M > 1] = 1
+    rescaled_M[rescaled_M < 0] = 0
+
+    rescaled_P[rescaled_P > 1] = 1
+    rescaled_P[rescaled_P < 0] = 0
+
+    image_r = img_3[:, :, 0]
+    image_g = img_3[:, :, 1]
+    image_b = img_3[:, :, 2]
+    nir = rescaled_M[:, :, 7]
+    re = rescaled_M[:, :, 5]
+
+    L = 1.0
+    C1 = 6.0
+    C2 = 7.5
+    evi = (nir - image_r) / (nir + C1 * image_r - C2 * image_b + L)
+    evi = np.expand_dims(evi, 2)
+
+    ndwi = (image_g - nir) / (image_g + nir)
+    ndwi = np.expand_dims(ndwi, 2)
+
+    savi = (nir - image_r) / (image_r + nir)
+    savi = np.expand_dims(savi, 2)
+
+    ccci = (nir - re) / (nir + re) * (nir - image_r) / (nir + image_r)
+    ccci = np.expand_dims(ccci, 2)
+
+    rescaled_P = np.expand_dims(rescaled_P, 2)
+
+    result = np.transpose(np.concatenate([rescaled_M, rescaled_P, ndwi, savi, evi, ccci, img_3], axis=2), (2, 0, 1))
+    return result.astype(np.float16)
 
 
 def make_prediction_cropped(model, X_train, initial_size=(572, 572), final_size=(388, 388), num_channels=19, num_masks=10):

@@ -123,17 +123,21 @@ def deconv2d_WN(x, num_filters, filter_size=[2,2], stride=[2,2], pad='SAME', ini
     # else:
     #     target_shape = [xs[0], xs[1]*stride[0] + filter_size[0]-1, xs[2]*stride[1] + filter_size[1]-1, num_filters]
     with tf.variable_scope(name):
-        V = get_var_maybe_avg('V', ema, shape=filter_size+[num_filters,int(x.get_shape()[-1])], dtype=tf.float32,
+        V = get_var_maybe_avg('V', ema,
+                              shape=filter_size+[num_filters,int(x.get_shape()[-1])],
+                              dtype=tf.float32,
                               initializer=tf.random_normal_initializer(0, 0.05), trainable=True)
-        g = get_var_maybe_avg('g', ema, shape=[num_filters], dtype=tf.float32,
+        g = get_var_maybe_avg('g', ema,
+                              shape=[num_filters],
+                              dtype=tf.float32,
                               initializer=tf.constant_initializer(1.), trainable=True)
-        b = get_var_maybe_avg('b', ema, shape=[num_filters], dtype=tf.float32,
+        b = get_var_maybe_avg('b', ema,
+                              shape=[num_filters],
+                              dtype=tf.float32,
                               initializer=tf.constant_initializer(0.), trainable=True)
 
         # use weight normalization (Salimans & Kingma, 2016)
-
         W = tf.reshape(g, [1, 1, num_filters, 1]) * tf.nn.l2_normalize(V, [0, 1, 2])
-
 
         # calculate convolutional layer output
         x = tf.nn.conv2d_transpose(x, W, target_shape, [1] + stride +[1], padding=pad)
