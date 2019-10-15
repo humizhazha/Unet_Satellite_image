@@ -109,7 +109,6 @@ class model(object):
                                        name='g_h3_deconv'), phase))
 
       h4 = deconv2d_WN(h3, F.num_mod, name='g_h4_deconv')
-      print(tf.nn.tanh(h4))
 
       return tf.nn.tanh(h4)
 
@@ -274,6 +273,7 @@ class model(object):
             _ = self.sess.run(d_optim, feed_dict={self.patches_lab: patches_lab, self.patches_unlab: patches_unlab,
                                                   self.z_gen: sample_z_gen, self.labels: labels, self.phase: True})
 
+            print(self.patches_fake)
             if F.badGAN:
                 _, _ = self.sess.run([e_optim, g_optim],
                                      feed_dict={self.patches_unlab: patches_unlab, self.z_gen: sample_z_gen,
