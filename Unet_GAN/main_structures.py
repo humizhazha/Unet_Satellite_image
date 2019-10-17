@@ -40,7 +40,7 @@ flags.DEFINE_boolean("badGAN", False, "True if you want to run badGAN based mode
 flags.DEFINE_integer("batch_size", 16, "The size of batch images [64]")
 
 flags.DEFINE_integer("num_mod", 2, "Number of modalities of the input 3-D image")
-flags.DEFINE_integer("num_classes", 4, "Number of output classes to segment")
+flags.DEFINE_integer("num_classes", 2, "Number of output classes to segment")
 flags.DEFINE_integer("noise_dim", 200, "Dimension of noise vector")
 
 

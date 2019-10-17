@@ -5,7 +5,8 @@ import h5py
 import tensorflow as tf
 
 import sys
-sys.path.insert(0, '../utils/')
+sys.path.insert(0, '../preprocess/')
+sys.path.insert(0, '../lib/')
 
 from operations_2d import *
 from utils import *
@@ -94,11 +95,11 @@ class model(object):
       sh1, sh2, sh3, sh4 = int(self.patch_shape[0] / 16), int(self.patch_shape[0] / 8), \
                            int(self.patch_shape[0] / 4), int(self.patch_shape[0] / 2)
 
-      h0 = linear(z, sh1 * sh1 * 512, 'g_h0_lin')
-      h0 = tf.reshape(h0, [F.batch_size, sh1, sh1, 512])
-      h0 = relu(self.g_bns[0](h0, phase))
+      self.h0 = linear(z, sh1 * sh1 * 512, 'g_h0_lin')
+      self.h0 = tf.reshape(self.h0, [F.batch_size, sh1, sh1, 512])
+      self.h0 = relu(self.g_bns[0](self.h0, phase))
 
-      h1 = relu(self.g_bns[1](deconv2d(h0, [F.batch_size, sh2, sh2, 256],
+      h1 = relu(self.g_bns[1](deconv2d(self.h0, [F.batch_size, sh2, sh2, 256],
                                        name='g_h1_deconv'), phase))
 
       h2 = relu(self.g_bns[2](deconv2d(h1, [F.batch_size, sh3, sh3, 128],
@@ -107,9 +108,9 @@ class model(object):
       h3 = relu(self.g_bns[3](deconv2d(h2, [F.batch_size, sh4, sh4, 64],
                                        name='g_h3_deconv'), phase))
 
-      h4 = deconv2d_WN(h3, F.num_mod, name='g_h4_deconv')
+      self.h4 = deconv2d_WN(h3, F.num_mod, name='g_h4_deconv')
 
-      return tf.nn.tanh(h4)
+      return tf.nn.tanh(self.h4)
 
   def encoder(self, patch, phase):
       """
@@ -168,7 +169,7 @@ class model(object):
     # Supervised loss
     # Weighted cross entropy loss (You can play with these values)
     # Weights of different class are: Background- 0.33, CSF- 1.5, GM- 0.83, WM- 1.33
-    class_weights = tf.constant([[0.33, 1.5, 0.83, 1.33]])
+    class_weights = tf.constant([[0.33, 1.5]])
     weights = tf.reduce_sum(class_weights * self.labels_1hot, axis=-1)
     unweighted_losses = tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.D_logits_lab, labels=self.labels_1hot)
     weighted_losses = unweighted_losses * weights
@@ -246,12 +247,13 @@ class model(object):
     else:
         print("\n [*] Checkpoint load not required.")
 
-    # Load the validation data
+   # Load the validation data
     patches_val, labels_val_patch, labels_val = preprocess_dynamic_lab(F.data_directory,
                                                                        F.num_classes, self.extraction_step,
                                                                        self.patch_shape,
-                                                                       F.number_train_images,F.type_number, validating=F.training,
+                                                                       F.number_validation_images,F.type_number, validating=F.training,
                                                                        testing=F.testing)
+
 
     predictions_val = np.zeros((patches_val.shape[0], self.patch_shape[0], self.patch_shape[1]), dtype="uint8")
     max_par = 0.0
@@ -267,16 +269,16 @@ class model(object):
 
         for patches_lab, patches_unlab, labels in batch_iter_train:
             # Network update
-            sample_z_gen = np.random.uniform(-1, 1, [F.batch_size, F.noise_dim]).astype(np.float32)
+            sample_z_gen = np.random.uniform(0, 1, [F.batch_size, F.noise_dim]).astype(np.float32)
 
             _ = self.sess.run(d_optim, feed_dict={self.patches_lab: patches_lab, self.patches_unlab: patches_unlab,
                                                   self.z_gen: sample_z_gen, self.labels: labels, self.phase: True})
 
-            print(self.patches_fake)
             if F.badGAN:
                 _, _ = self.sess.run([e_optim, g_optim],
                                      feed_dict={self.patches_unlab: patches_unlab, self.z_gen: sample_z_gen,
                                                 self.z_gen: sample_z_gen, self.phase: True})
+
             else:
                 _ = self.sess.run(g_optim, feed_dict={self.patches_unlab: patches_unlab, self.z_gen: sample_z_gen,
                                                       self.z_gen: sample_z_gen, self.phase: True})
@@ -289,6 +291,11 @@ class model(object):
             d_loss_unlab_true = self.true_loss.eval(feed_dict)
             d_loss_unlab_fake = self.fake_loss.eval(feed_dict)
             g_loss_fm = self.g_loss_fm.eval(feed_dict)
+            f_p = self.patches_fake.eval(feed_dict)
+            h = self.h4.eval(feed_dict)
+
+           # print(f_p)
+            print(h)
 
             total_train_loss_CE = total_train_loss_CE + d_loss_lab
             total_train_loss_UL = total_train_loss_UL + d_loss_unlab_true
@@ -309,78 +316,77 @@ class model(object):
                       (epoch, idx, data.num_batches, d_loss_lab, d_loss_unlab_true, d_loss_unlab_fake, g_loss_fm))
 
         # Save the curret model
-    save_model(F.checkpoint_dir, self.sess, self.saver)
+        save_model(F.checkpoint_dir, self.sess, self.saver)
+        if epoch % 10 == 0:
+            avg_train_loss_CE = total_train_loss_CE / (idx * 1.0)
+            avg_train_loss_UL = total_train_loss_UL / (idx * 1.0)
+            avg_train_loss_FK = total_train_loss_FK / (idx * 1.0)
+            avg_gen_FMloss = total_gen_FMloss / (idx * 1.0)
 
-    # avg_train_loss_CE = total_train_loss_CE / (idx * 1.0)
-    # avg_train_loss_UL = total_train_loss_UL / (idx * 1.0)
-    # avg_train_loss_FK = total_train_loss_FK / (idx * 1.0)
-    # avg_gen_FMloss = total_gen_FMloss / (idx * 1.0)
-    #
-    # print('\n\n')
-    #
-    # total_batches = int(patches_val.shape[0] / F.batch_size)
-    # print("Total number of batches for validation: ", total_batches)
-    #
-    #     # Prediction of validation patches
-    # for batch in range(total_batches):
-    #     patches_feed = patches_val[batch * F.batch_size:(batch + 1) * F.batch_size, :, :, :]
-    #     labels_feed = labels_val_patch[batch * F.batch_size:(batch + 1) * F.batch_size, :, :]
-    #     feed_dict = {self.patches_lab: patches_feed,
-    #                      self.labels: labels_feed, self.phase: False}
-    #     preds = self.Val_output.eval(feed_dict)
-    #     val_loss = self.d_loss_lab.eval(feed_dict)
-    #
-    #     predictions_val[batch * F.batch_size:(batch + 1) * F.batch_size, :, :] = preds
-    #     print(("Validated Patch:[%8d/%8d]") % (batch, total_batches))
-    #     total_val_loss = total_val_loss + val_loss
-    #
-    #     # To compute average patchvise validation loss(cross entropy loss)
-    # avg_val_loss = total_val_loss / (total_batches * 1.0)
-    #
-    # print("All validation patches Predicted")
-    #
-    # print("Shape of predictions_val, min and max:", predictions_val.shape, np.min(predictions_val),
-    #           np.max(predictions_val))
-    #
-    #     # To stitch back the patches into an entire image
-    # val_image_pred = recompose2D_overlap(predictions_val, 3328, 3328, self.extraction_step[0],
-    #                                          self.extraction_step[1])
-    # val_image_pred = val_image_pred.astype('uint8')
-    #
-    # print("Shape of Predicted Output Groundtruth Images:", val_image_pred.shape,
-    #           np.unique(val_image_pred),
-    #           np.unique(labels_val),
-    #           np.mean(val_image_pred), np.mean(labels_val))
-    #
-    # pred2d = np.reshape(val_image_pred, (val_image_pred.shape[0] * 3328*3328))
-    # lab2d = np.reshape(labels_val, (labels_val.shape[0] * 3328*3328))
-    #
-    # # For printing the validation results
-    # F1_score = f1_score(lab2d, pred2d, [0, 1, 2, 3], average=None)
-    # print("Validation Dice Coefficient.... ")
-    # print("Background:", F1_score[0])
-    # print("CSF:", F1_score[1])
-    # print("GM:", F1_score[2])
-    # print("WM:", F1_score[3])
-    #
-    #     # To Save the best model
-    # if (max_par < (F1_score[2] + F1_score[3])):
-    #     max_par = (F1_score[2] + F1_score[3])
-    #     save_model(F.best_checkpoint_dir, self.sess, self.saver)
-    #     print("Best checkpoint updated from validation results.")
-    #
-    # # To save the losses for plotting
-    # print("Average Validation Loss:", avg_val_loss)
-    # with open('Val_loss_GAN.txt', 'a') as f:
-    #     f.write('%.2e \n' % avg_val_loss)
-    # with open('Train_loss_CE.txt', 'a') as f:
-    #     f.write('%.2e \n' % avg_train_loss_CE)
-    # with open('Train_loss_UL.txt', 'a') as f:
-    #     f.write('%.2e \n' % avg_train_loss_UL)
-    # with open('Train_loss_FK.txt', 'a') as f:
-    #     f.write('%.2e \n' % avg_train_loss_FK)
-    # with open('Train_loss_FM.txt', 'a') as f:
-    #     f.write('%.2e \n' % avg_gen_FMloss)
+            print('\n\n')
+
+            total_batches = int(patches_val.shape[0] / F.batch_size)
+            print("Total number of batches for validation: ", total_batches)
+
+            for batch in range(total_batches):
+                patches_feed = patches_val[batch * F.batch_size:(batch + 1) * F.batch_size, :, :, :]
+                labels_feed = labels_val_patch[batch * F.batch_size:(batch + 1) * F.batch_size, :, :]
+                feed_dict = {self.patches_lab: patches_feed,
+                         self.labels: labels_feed, self.phase: False}
+                preds = self.Val_output.eval(feed_dict)
+                val_loss = self.d_loss_lab.eval(feed_dict)
+
+                predictions_val[batch * F.batch_size:(batch + 1) * F.batch_size, :, :] = preds
+                print(("Validated Patch:[%8d/%8d]") % (batch, total_batches))
+                total_val_loss = total_val_loss + val_loss
+
+        # To compute average patchvise validation loss(cross entropy loss)
+            avg_val_loss = total_val_loss / (total_batches * 1.0)
+
+            print("All validation patches Predicted")
+
+            print("Shape of predictions_val, min and max:", predictions_val.shape, np.min(predictions_val),
+              np.max(predictions_val))
+
+        # To stitch back the patches into an entire image
+            val_image_pred = recompose2D_overlap(predictions_val, 3328, 3328, self.extraction_step[0],
+                                             self.extraction_step[1])
+            val_image_pred = val_image_pred.astype('uint8')
+
+            print("Shape of Predicted Output Groundtruth Images:", val_image_pred.shape,
+              np.unique(val_image_pred),
+              np.unique(labels_val),
+              np.mean(val_image_pred), np.mean(labels_val))
+            print(val_image_pred)
+
+            pred2d = np.reshape(val_image_pred, (val_image_pred.shape[0] * 3328*3328))
+            lab2d = np.reshape(labels_val, (labels_val.shape[0] * 3328*3328))
+
+    # For printing the validation results
+            F1_score = f1_score(lab2d, pred2d, [0, 1], average=None)
+            print("Validation Dice Coefficient.... ")
+            print("Background:", F1_score[0])
+            print("CSF:", F1_score[1])
+
+
+        # To Save the best model
+            if (max_par < (F1_score[0] + F1_score[1])):
+                max_par = (F1_score[0] + F1_score[1])
+                save_model(F.best_checkpoint_dir, self.sess, self.saver)
+                print("Best checkpoint updated from validation results.")
+
+    # To save the losses for plotting
+            print("Average Validation Loss:", avg_val_loss)
+            with open('Val_loss_GAN.txt', 'a') as f:
+                f.write('%.2e \n' % avg_val_loss)
+            with open('Train_loss_CE.txt', 'a') as f:
+                f.write('%.2e \n' % avg_train_loss_CE)
+            with open('Train_loss_UL.txt', 'a') as f:
+                f.write('%.2e \n' % avg_train_loss_UL)
+            with open('Train_loss_FK.txt', 'a') as f:
+                f.write('%.2e \n' % avg_train_loss_FK)
+            with open('Train_loss_FM.txt', 'a') as f:
+                f.write('%.2e \n' % avg_gen_FMloss)
     return
 
 """
@@ -425,7 +431,7 @@ def get_patches_lab(threeband_vols,label_vols, extraction_step,
         if validating:
             valid_idxs = np.where(np.sum(label_patches, axis=(1, 2)) != -1)
         else:
-            valid_idxs = np.where(np.count_nonzero(label_patches, axis=(1, 2)) > 1000)
+            valid_idxs = np.where(np.count_nonzero(label_patches, axis=(1, 2)) > 3000)
 
         # Filtering extracted patches
         label_patches = label_patches[valid_idxs]
@@ -485,7 +491,7 @@ def get_patches_unlab(unlabel_vols, extraction_step, patch_shape,type_class):
 
         # Select only those who are important for processing
         # Sampling strategy: reject samples which labels are mostly 0 and have less than 6000 nonzero elements
-        valid_idxs = np.where(np.count_nonzero(label_patches, axis=(1, 2)) > 1000)
+        valid_idxs = np.where(np.count_nonzero(label_patches, axis=(1, 2)) > 3000)
 
         label_patches = label_patches[valid_idxs]
         x = np.vstack((x, np.zeros((len(label_patches), patch_shape_1d, patch_shape_1d, 2))))
@@ -543,6 +549,10 @@ class dataset(object):
     print("Data_shape:",self.data_lab.shape,self.data_unlab.shape)
     print("Data lab max and min:",np.max(self.data_lab),np.min(self.data_lab))
     print("Data unlab max and min:",np.max(self.data_unlab),np.min(self.data_unlab))
+    # filename = "label.pickle"
+    # filehandler = open(filename,'wb')
+    # pickle.dump(self.label,filehandler)
+    # filehandler.close()
     print("Label unique:",np.unique(self.label))
 
   def batch_train(self):
