@@ -293,9 +293,6 @@ class model(object):
             f_p = self.patches_fake.eval(feed_dict)
             h = self.h4.eval(feed_dict)
 
-           # print(f_p)
-            print(h)
-
             total_train_loss_CE = total_train_loss_CE + d_loss_lab
             total_train_loss_UL = total_train_loss_UL + d_loss_unlab_true
             total_train_loss_FK = total_train_loss_FK + d_loss_unlab_fake
@@ -316,7 +313,7 @@ class model(object):
 
         # Save the curret model
         save_model(F.checkpoint_dir, self.sess, self.saver)
-        if epoch % 10 == 0:
+        if epoch % 3 == 0:
             avg_train_loss_CE = total_train_loss_CE / (idx * 1.0)
             avg_train_loss_UL = total_train_loss_UL / (idx * 1.0)
             avg_train_loss_FK = total_train_loss_FK / (idx * 1.0)
