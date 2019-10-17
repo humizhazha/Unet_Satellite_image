@@ -3,7 +3,8 @@ Script that caches train data for future training
 """
 
 from __future__ import division
-
+import sys
+sys.path.insert(0, '../utils/')
 import os
 import pandas as pd
 from tqdm import tqdm

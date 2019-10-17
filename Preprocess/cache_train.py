@@ -3,14 +3,16 @@ Script that caches train data for future training
 """
 
 from __future__ import division
-
+import sys
+sys.path.insert(0, '../utils/')
 import os
 import pandas as pd
-import extra_functions
+from utils import *
 from tqdm import tqdm
 import h5py
 import numpy as np
 import tifffile as tiff
+import extra_functions
 
 data_path = '../data'
 
