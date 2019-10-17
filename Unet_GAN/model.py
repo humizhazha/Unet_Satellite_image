@@ -5,8 +5,7 @@ import h5py
 import tensorflow as tf
 
 import sys
-sys.path.insert(0, '../preprocess/')
-sys.path.insert(0, '../lib/')
+sys.path.insert(0, '../utils/')
 
 from operations_2d import *
 from utils import *
