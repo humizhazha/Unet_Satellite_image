@@ -6,8 +6,7 @@ import numpy as np
 from sklearn.metrics import f1_score
 
 import sys
-sys.path.insert(0, '../preprocess/')
-sys.path.insert(0, '../lib/')
+sys.path.insert(0, '../utils/')
 
 from operations_2d import *
 from utils import *

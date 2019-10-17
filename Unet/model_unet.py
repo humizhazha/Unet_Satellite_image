@@ -7,12 +7,11 @@ from six.moves import xrange
 from sklearn.metrics import f1_score
 
 import sys
-sys.path.insert(0, '../preprocess/')
-sys.path.insert(0, '../lib/')
+sys.path.insert(0, '../utils/')
 
 from operations_2d import *
-from utils import *
 from preprocessSatellite import *
+from utils import *
 
 
 F = tf.app.flags.FLAGS
