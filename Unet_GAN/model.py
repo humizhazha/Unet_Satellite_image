@@ -290,8 +290,6 @@ class model(object):
             d_loss_unlab_true = self.true_loss.eval(feed_dict)
             d_loss_unlab_fake = self.fake_loss.eval(feed_dict)
             g_loss_fm = self.g_loss_fm.eval(feed_dict)
-            f_p = self.patches_fake.eval(feed_dict)
-            h = self.h4.eval(feed_dict)
 
             total_train_loss_CE = total_train_loss_CE + d_loss_lab
             total_train_loss_UL = total_train_loss_UL + d_loss_unlab_true
