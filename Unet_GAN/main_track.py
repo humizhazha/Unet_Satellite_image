@@ -5,8 +5,6 @@ import tensorflow as tf
 from model import model
 from test import *
 
-
-
 # Define flags
 flags = tf.app.flags
 flags.DEFINE_integer("epoch", 300, "Number of training epochs (default: 300)")
@@ -27,6 +25,7 @@ flags.DEFINE_integer("number_train_unlab_images", 1, "No. of unlabeled images fo
 flags.DEFINE_integer("number_test_images", 2, "No. of images for testing")
 flags.DEFINE_integer("type_number", 3, "No. of class type")
 
+
 flags.DEFINE_string("data_directory", "../data", "Directory name containing the dataset")
 flags.DEFINE_string("checkpoint_dir", "checkpoint/track/current", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_string("best_checkpoint_dir", "checkpoint/track/best", "Directory name to save the best checkpoints [checkpoint]")
@@ -35,7 +34,7 @@ flags.DEFINE_string("results_dir", "results/track/", "Directory name to save the
 flags.DEFINE_boolean("load_chkpt", False, "True for loading saved checkpoint")
 flags.DEFINE_boolean("training", True, "True for Training ")
 flags.DEFINE_boolean("testing", False, "True for Testing ")
-flags.DEFINE_boolean("badGAN", False, "True if you want to run badGAN based model ")
+flags.DEFINE_boolean("badGAN", True, "True if you want to run badGAN based model ")
 
 flags.DEFINE_integer("batch_size", 16, "The size of batch images [64]")
 
@@ -44,10 +43,10 @@ flags.DEFINE_integer("num_classes", 2, "Number of output classes to segment")
 flags.DEFINE_integer("noise_dim", 200, "Dimension of noise vector")
 
 
-
 FLAGS = flags.FLAGS
 
 def main(_):
+
   # Create required directories
   if not os.path.exists(FLAGS.checkpoint_dir):
     os.makedirs(FLAGS.checkpoint_dir)
@@ -57,7 +56,6 @@ def main(_):
 
   if not os.path.exists(FLAGS.best_checkpoint_dir):
     os.makedirs(FLAGS.best_checkpoint_dir)
-
 
   # To configure the GPU fraction
   gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=FLAGS.gpu_frac)
@@ -70,9 +68,10 @@ def main(_):
   if FLAGS.training:
     # For training the network
     with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
-      network = model(sess,patch_shape,extraction_step)
+      network = model(sess, patch_shape,extraction_step)
       network.build_model()
       network.train()
+
   if FLAGS.testing:
       # For testing the trained network
       test(patch_shape,testing_extraction_shape)
