@@ -8,8 +8,8 @@ import tensorflow as tf
 sys.path.insert(0, os.path.join('..', 'utils'))
 sys.path.insert(0, os.path.join('..', 'preprocess'))
 
-#from utils.operations_2d import *
-from operations_2d import *
+from utils.operations_2d import *
+#from operations_2d import *
 from utils import *
 from preprocess import *
 
@@ -274,6 +274,7 @@ class model(object):
         total_train_loss_FK = 0
         total_gen_FMloss = 0
 
+        # go thru all patches
         for patches_lab, patches_unlab, labels in batch_iter_train: # the three items
             # Network update
             sample_z_gen = np.random.uniform(-1, 1, [F.batch_size, F.noise_dim]).astype(np.float32)
@@ -316,15 +317,6 @@ class model(object):
             total_train_loss_FK = total_train_loss_FK + d_loss_unlab_fake
             total_gen_FMloss = total_gen_FMloss + g_loss_fm
 
-            with open(os.path.join(F.results_dir, 'Train_loss_CE.txt'), 'a') as f:
-                f.write('%.2e \n' % total_train_loss_CE)
-            with open(os.path.join(F.results_dir, 'Train_loss_UL.txt'), 'a') as f:
-                f.write('%.2e \n' % total_train_loss_UL)
-            with open(os.path.join(F.results_dir, 'Train_loss_FK.txt'), 'a') as f:
-                f.write('%.2e \n' % total_train_loss_FK)
-            with open(os.path.join(F.results_dir, 'Train_loss_FM.txt'), 'a') as f:
-                f.write('%.2e \n' % total_gen_FMloss)
-
             idx += 1
 
             if F.badGAN:
@@ -338,8 +330,18 @@ class model(object):
                           "Epoch:[%2d] [%4d/%4d] Labeled loss:%.2e Unlabeled loss:%.2e Fake loss:%.2e Generator loss:%.8f \n") %
                       (epoch, idx, data.num_batches, d_loss_lab, d_loss_unlab_true, d_loss_unlab_fake, g_loss_fm))
 
+        # save the loss for each epoch
+        with open(os.path.join(F.results_dir, 'Train_loss_CE.txt'), 'a') as f:
+            f.write('%.2e \n' % total_train_loss_CE)
+        with open(os.path.join(F.results_dir, 'Train_loss_UL.txt'), 'a') as f:
+            f.write('%.2e \n' % total_train_loss_UL)
+        with open(os.path.join(F.results_dir, 'Train_loss_FK.txt'), 'a') as f:
+            f.write('%.2e \n' % total_train_loss_FK)
+        with open(os.path.join(F.results_dir, 'Train_loss_FM.txt'), 'a') as f:
+            f.write('%.2e \n' % total_gen_FMloss)
+
         # Save the curret model
-    save_model(F.checkpoint_dir, self.sess, self.saver)
+#    save_model(F.checkpoint_dir, self.sess, self.saver)
 
     avg_train_loss_CE = total_train_loss_CE / (idx * 1.0)
     avg_train_loss_UL = total_train_loss_UL / (idx * 1.0)
@@ -389,8 +391,8 @@ class model(object):
     print("Validation Dice Coefficient.... ")
     print("Background:", F1_score[0])
     print("CSF:", F1_score[1])
-    print("GM:", F1_score[2])
-    print("WM:", F1_score[3])
+    # print("GM:", F1_score[2])
+    # print("WM:", F1_score[3])
 
         # To Save the best model
     if (max_par < (F1_score[2] + F1_score[3])):
