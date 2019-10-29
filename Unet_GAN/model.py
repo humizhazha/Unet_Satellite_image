@@ -395,8 +395,8 @@ class model(object):
     # print("WM:", F1_score[3])
 
         # To Save the best model
-            if (max_par < (F1_score[0] + F1_score[1])):
-                max_par = (F1_score[0] + F1_score[1])
+            if (max_par < F1_score[1]):
+                max_par =  F1_score[1]
                 save_model(F.best_checkpoint_dir, self.sess, self.saver)
                 print("Best checkpoint updated from validation results.")
 
