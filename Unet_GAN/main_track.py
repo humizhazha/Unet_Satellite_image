@@ -23,6 +23,7 @@ flags.DEFINE_float("vi_weight", 0.01, "Weight of variational inference loss")
 flags.DEFINE_integer("number_train_images", 2, "No. of labeled images for training")
 flags.DEFINE_integer("number_train_unlab_images", 1, "No. of unlabeled images for training")
 flags.DEFINE_integer("number_test_images", 2, "No. of images for testing")
+flags.DEFINE_integer("number_validate_images", 1, "No. of images for validating")
 flags.DEFINE_integer("type_number", 3, "No. of class type")
 
 flags.DEFINE_string("data_directory", "/home/jxu3/Data/dstl_data", "Directory name containing the dataset")
