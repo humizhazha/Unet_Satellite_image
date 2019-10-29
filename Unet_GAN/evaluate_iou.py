@@ -31,6 +31,7 @@ shapes = pd.read_csv(os.path.join(data_path, '3_shapes.csv'))
 result_pickle = os.path.join(data_path, 'result_1unlabel.pickle')
 
 
+
 def get_scalers(height, width, x_max, y_min):
     """
     :param height:
@@ -107,14 +108,12 @@ def compute_IOU():
     with open(result_pickle, "rb") as input_file:
         predicted_mask = pickle.load(input_file)
 
-
     count_predict = 0
     for i in range(predicted_mask.shape[0]):
         for j in range(predicted_mask.shape[1]):
             if predicted_mask[i][j]==1:
                 count_predict=count_predict+1
     print("Predicted count:"+str(count_predict))
-
 
     for tid in test_ids:
         real_poly = train_wkt.loc[(train_wkt['ImageId'] == test_ids)
