@@ -1,6 +1,5 @@
 from __future__ import division
 import os
-import pickle
 import tensorflow as tf
 import numpy as np
 from sklearn.metrics import f1_score
@@ -9,18 +8,19 @@ import sys
 import pickle
 
 sys.path.insert(0, os.path.join('..', 'utils'))
-from operations_2d import *
 #from operations_2d import *
+#from utils import *
+from utils.operations_2d import *
+from utils.utils import *
 
 F = tf.app.flags.FLAGS
 
 
 # Function to save predicted images as .nii.gz file in results folder
-def save_image(direc, i, num):
-    file_name = 'result'+str(num)+'.pickle'
-    filehandler = open(file_name,'wb')
-    pickle.dump(i,filehandler)
-    filehandler.close()
+def save_image(output_dir, image, index):
+    pickle_fname = 'predicted_image_{}.pickle'.format(index)
+    pickle_fpath = os.path.join(output_dir, pickle_fname)
+    pickle.dump(image,  open(pickle_fpath, 'wb'))
 
 
 # Same discriminator network as in model file
@@ -70,6 +70,7 @@ def trained_dis_network(patch, reuse=False):
 
         return tf.nn.softmax(h14)
 
+
 """
 To extract patches from a 3D image
 """
@@ -85,13 +86,13 @@ def extract_patches(volume, patch_shape, extraction_step,datype='float32'):
   k=0
 
   #iterator over all the patches
-
   for d in range((img_d-patch_d)//stride_d+1):
     for w in range((img_w-patch_w)//stride_w+1):
         raw_patch_martrix[k]=volume[w*stride_w:(w*stride_w)+patch_w, d*stride_d:(d*stride_d)+patch_d]
         k+=1
   assert(k==N_patches_img)
   return raw_patch_martrix
+
 
 """
 To extract labeled patches from array of 3D labeled images
@@ -129,9 +130,10 @@ def get_patches_lab(threeband_vols,label_vols, extraction_step,
 """
 To preprocess the labeled training data
 """
-def preprocess_dynamic_lab(dir,num_classes, extraction_step,patch_shape,num_images_training, type,
-                                validating=False,testing=False,num_images_testing=7):
-    f = h5py.File(os.path.join("../data", 'test.h5'), 'r')
+def preprocess_dynamic_lab(dir, num_classes, extraction_step,
+                           patch_shape, num_images_training, type,
+                        validating=False,testing=False,num_images_testing=7):
+    f = h5py.File(os.path.join(F.data_directory, 'test.h5'), 'r')
     test_vols = np.array(f['test'])[:, 2]
     label = np.array(f['test_mask'])[:, type]
 
@@ -140,48 +142,50 @@ def preprocess_dynamic_lab(dir,num_classes, extraction_step,patch_shape,num_imag
 
     return x, label
 
+
 """
  Function to test the model and evaluate the predicted images
  Parameters:
  * patch_shape - shape of the patch
  * extraction_step - stride while extracting patches
 """
-
-
 def test(patch_shape, extraction_step):
-    with tf.Graph().as_default():
-        test_patches = tf.placeholder(tf.float32, [F.batch_size, patch_shape[0], patch_shape[1], F.num_mod], name='real_patches')
 
+    with tf.Graph().as_default(): # define a graph
+        test_patches = tf.placeholder(tf.float32,
+                                      [F.batch_size, patch_shape[0], patch_shape[1], F.num_mod],
+                                      name='real_patches')
         # Define the network
         output_soft = trained_dis_network(test_patches, reuse=None)
-
-        # To convert from one hat form
-        output = tf.argmax(output_soft, axis=-1)
+        output = tf.argmax(output_soft, axis=-1)  # To convert from one hat form
         print("Output Patch Shape:", output.get_shape())
 
+        initializer = tf.global_variables_initializer()
         # To load the saved checkpoint
         saver = tf.train.Saver()
         with tf.Session() as sess:
+            # initialize all operations
+            sess.run(initializer)
             try:
-                load_model("result1/", sess, saver)
+                load_model(F.checkpoint_dir, sess, saver)
                 print(" Checkpoint loaded succesfully!....\n")
             except:
                 print(" [!] Checkpoint loading failed!....\n")
                 return
 
             # Get patches from test images
-            patches_test, labels_test = preprocess_dynamic_lab(F.data_directory,
-                                                               F.num_classes, extraction_step, patch_shape,
-                                                               F.number_train_images, F.type_number,validating=F.training,
-                                                               testing=F.testing,
-                                                               num_images_testing=F.number_test_images)
+            patches_test, labels_test = \
+                preprocess_dynamic_lab(F.data_directory, F.num_classes,
+                                       extraction_step, patch_shape,
+                                       F.number_train_images, F.type_number,
+                                       validating=F.training,
+                                       testing=F.testing,
+                                       num_images_testing=F.number_test_images)
             total_batches = int(patches_test.shape[0] / F.batch_size)
 
             # Array to store the prediction results
             predictions_test = np.zeros((patches_test.shape[0], patch_shape[0], patch_shape[1]))
-
             print("max and min of patches_test:", np.min(patches_test), np.max(patches_test))
-
             print("Total number of Batches: ", total_batches)
 
             # Batch wise prediction
@@ -192,12 +196,11 @@ def test(patch_shape, extraction_step):
                 print(("Processed_batch:[%8d/%8d]") % (batch, total_batches))
 
             print("All patches Predicted")
-
-            print("Shape of predictions_test, min and max:", predictions_test.shape, np.min(predictions_test),
-                  np.max(predictions_test))
+            print("Shape of predictions_test, min and max:",
+                  predictions_test.shape, np.min(predictions_test), np.max(predictions_test))
 
             # To stitch the image back
-            images_pred = recompose2D_overlap(predictions_test, 3328,3328, extraction_step[0],extraction_step[1])
+            images_pred = recompose2D_overlap(predictions_test, 3328, 3328, extraction_step[0],extraction_step[1])
 
             print("Shape of Predicted Output Groundtruth Images:", images_pred.shape,
                   np.min(images_pred), np.max(images_pred),
@@ -205,9 +208,7 @@ def test(patch_shape, extraction_step):
 
             # To save the images
             for i in range(F.number_test_images):
-                pred2d = np.reshape(images_pred[i], (3328*3328))
-                lab2d = np.reshape(labels_test[i], (3328*3328))
-                save_image(F.results_dir, images_pred[i], F.number_train_images + i + 2)
+                save_image(F.results_dir, images_pred[i], i)
 
             # Evaluation
             pred2d = np.reshape(images_pred, (images_pred.shape[0] * 3328*3328))
@@ -216,8 +217,7 @@ def test(patch_shape, extraction_step):
             F1_score = f1_score(lab2d, pred2d, [0, 1], average=None)
             print("Testing Dice Coefficient.... ")
             print("Background:", F1_score[0])
-            print("CSF:", F1_score[1])
-            
+            print("Test Class:", F1_score[1])
 
     return
 

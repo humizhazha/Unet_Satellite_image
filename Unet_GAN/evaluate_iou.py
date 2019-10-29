@@ -20,6 +20,7 @@ test_ids = '6040_4_4'
 ##Change the type here. E.g. 5 represents crops
 mask_channel = 5
 
+
 ##Change your data path here
 data_path = '../data'
 train_wkt = pd.read_csv(os.path.join(data_path, 'train_wkt_v4.csv'))
@@ -29,9 +30,9 @@ shapes = pd.read_csv(os.path.join(data_path, '3_shapes.csv'))
 ##Change your result pickle file here
 result_pickle = os.path.join(data_path, 'result_1unlabel.pickle')
 
+
 def get_scalers(height, width, x_max, y_min):
     """
-
     :param height:
     :param width:
     :param x_max:
@@ -42,9 +43,9 @@ def get_scalers(height, width, x_max, y_min):
     h_ = height * (height / (height + 1))
     return w_ / x_max, h_ / y_min
 
+
 def generate_mask(image_id, height, width, num_mask_channels=10, train=train_wkt):
     """
-
     :param image_id:
     :param height:
     :param width:
@@ -52,15 +53,14 @@ def generate_mask(image_id, height, width, num_mask_channels=10, train=train_wkt
     :param train: polygons with labels in the polygon format
     :return: mask corresponding to an image_id of the desired height and width with desired number of channels
     """
-
     mask = np.zeros((num_mask_channels, height, width))
-
     for mask_channel in range(num_mask_channels):
         poly = train.loc[(train['ImageId'] == image_id)
                          & (train['ClassType'] == mask_channel), 'MultipolygonWKT'].values[0]
         polygons = shapely.wkt.loads(poly)
         mask[mask_channel, :, :] = polygons2mask_layer(height, width, polygons, image_id)
     return mask
+
 
 def polygons2mask_layer(height, width, polygons, image_id):
     """
@@ -70,7 +70,6 @@ def polygons2mask_layer(height, width, polygons, image_id):
     :param polygons:
     :return:
     """
-
     x_max, y_min = _get_xmax_ymin(image_id)
     x_scaler, y_scaler = get_scalers(height, width, x_max, y_min)
 
@@ -96,41 +95,50 @@ def polygons2mask(height, width, polygons, image_id):
         result[mask_channel, :, :] = polygons2mask_layer(height, width, polygons[mask_channel], image_id)
     return result
 
+
 def _get_xmax_ymin(image_id):
     xmax, ymin = gs[gs['ImageId'] == image_id].iloc[0, 1:].astype(float)
     return xmax, ymin
 
-with open(result_pickle, "rb") as input_file:
-    predicted_mask = pickle.load(input_file)
 
 
-count_predict = 0
-for i in range(predicted_mask.shape[0]):
-    for j in range(predicted_mask.shape[1]):
-        if predicted_mask[i][j]==1:
-            count_predict=count_predict+1
-print("Predicted count:"+str(count_predict))
+def compute_IOU():
+
+    with open(result_pickle, "rb") as input_file:
+        predicted_mask = pickle.load(input_file)
 
 
-for tid in test_ids:
-    real_poly = train_wkt.loc[(train_wkt['ImageId'] == test_ids)
-                         & (train_wkt['ClassType'] == mask_channel), 'MultipolygonWKT'].values[0]
-    polygons = shapely.wkt.loads(real_poly)
-mask = np.zeros((3328, 3328))
-mask[:, :] = polygons2mask_layer(3328, 3328, polygons, test_ids)
+    count_predict = 0
+    for i in range(predicted_mask.shape[0]):
+        for j in range(predicted_mask.shape[1]):
+            if predicted_mask[i][j]==1:
+                count_predict=count_predict+1
+    print("Predicted count:"+str(count_predict))
 
-count_real = 0
-for i in range(mask.shape[0]):
-    for j in range(mask.shape[1]):
-        if mask[i][j]==1:
-            count_real=count_real+1
-print("Real count:"+str(count_real))
 
-count_common=0
-for i in range(mask.shape[0]):
-    for j in range(mask.shape[1]):
-        if mask[i][j]==1 and predicted_mask[i][j]==1:
-            count_common=count_common+1
+    for tid in test_ids:
+        real_poly = train_wkt.loc[(train_wkt['ImageId'] == test_ids)
+                             & (train_wkt['ClassType'] == mask_channel), 'MultipolygonWKT'].values[0]
+        polygons = shapely.wkt.loads(real_poly)
+    mask = np.zeros((3328, 3328))
+    mask[:, :] = polygons2mask_layer(3328, 3328, polygons, test_ids)
 
-iou = count_common/(count_real+count_predict-count_common)
-print("IOU:"+str(iou))
+    count_real = 0
+    for i in range(mask.shape[0]):
+        for j in range(mask.shape[1]):
+            if mask[i][j]==1:
+                count_real=count_real+1
+    print("Real count:"+str(count_real))
+
+    count_common=0
+    for i in range(mask.shape[0]):
+        for j in range(mask.shape[1]):
+            if mask[i][j]==1 and predicted_mask[i][j]==1:
+                count_common=count_common+1
+
+    iou = count_common/(count_real+count_predict-count_common)
+    print("IOU:"+str(iou))
+
+
+if __name__ == '__main__':
+    compute_IOU()
