@@ -8,9 +8,9 @@ import tensorflow as tf
 sys.path.insert(0, os.path.join('..', 'utils'))
 sys.path.insert(0, os.path.join('..', 'preprocess'))
 
-from utils.operations_2d import *
+from operations_2d import *
 #from operations_2d import *
-from utils import *
+
 from preprocess import *
 
 import numpy as np
@@ -258,7 +258,7 @@ class model(object):
     patches_val, labels_val_patch, labels_val = \
         preprocess_dynamic_lab(F.data_directory,
                                F.num_classes, self.extraction_step, self.patch_shape,
-                               F.number_train_images,
+                               F.number_validate_images,
                                F.type_number,
                                validating=F.training, testing=F.testing)
 
