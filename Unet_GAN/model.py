@@ -9,9 +9,10 @@ sys.path.insert(0, os.path.join('..', 'utils'))
 sys.path.insert(0, os.path.join('..', 'preprocess'))
 
 from operations_2d import *
+
 #from operations_2d import *
 
-from preprocess import *
+#from preprocess import *
 
 import numpy as np
 from six.moves import xrange
@@ -516,14 +517,14 @@ def preprocess_dynamic_lab(dir,
 """
 To extract labeled patches from array of 3D ulabeled images
 """
-def get_patches_unlab(unlabel_vols, extraction_step, patch_shape,type_class):
+def get_patches_unlab(unlabel_vols, extraction_step, patch_shape,type_class,num_images_training_unlab):
     patch_shape_1d = patch_shape[0]
     # Extract patches from input volumes and ground truth
     #label_ref = np.empty((1, 3345, 3338), dtype="uint8")
     x = np.zeros((0, patch_shape_1d, patch_shape_1d, 2))
     f = h5py.File(os.path.join(F.data_directory, 'train_label.h5'), 'r')
     label_ref = np.array(f['train_mask'])[:, type_class][0]
-    for idx in range(len(unlabel_vols)):
+    for idx in range(num_images_training_unlab):
         x_length = len(x)
         print(("Extracting Unlabel Patches from Image %2d ....") % (idx+1))
         label_patches = extract_patches(label_ref, patch_shape, extraction_step)
@@ -557,7 +558,7 @@ def preprocess_dynamic_unlab(dir,extraction_step,patch_shape,num_images_training
     #                                     (np.max(unlabel_vols[i])-np.min(unlabel_vols[i])))*255
     #
     # unlabel_vols = unlabel_vols/127.5 -1.
-    x=get_patches_unlab(unlabel_vols, extraction_step, patch_shape,type_class)
+    x=get_patches_unlab(unlabel_vols, extraction_step, patch_shape,type_class,num_images_training_unlab)
     print("Total Extracted Unlabelled Patches Shape:",x.shape)
     return x
 
