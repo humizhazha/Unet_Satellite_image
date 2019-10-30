@@ -215,7 +215,7 @@ def test(patch_shape, extraction_step):
             pred2d = np.reshape(images_pred, (images_pred.shape[0] * 3328*3328))
             lab2d = np.reshape(labels_test, (labels_test.shape[0] * 3328*3328))
             sum = 0
-            for i in F.number_test_images:
+            for i in range(F.number_test_images):
                 iou = compute_IOU_on_Validation(images_pred[i], labels_test[i])
                 sum = sum + iou
 
