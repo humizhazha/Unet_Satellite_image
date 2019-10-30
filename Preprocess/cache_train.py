@@ -27,17 +27,16 @@ unlabel_id =['6010_4_0','6010_4_1','6010_4_2','6150_2_3','6170_0_4','6170_4_1']
 
 def cache_train_16():
     train_wkt = pd.read_csv(os.path.join(data_path, 'train_wkt_v4.csv'))
-    sample_wkt = train_wkt[train_wkt['ImageId'].isin(train_id+validation_id+unlabel_id)]
-    train_wkt = train_wkt[train_wkt['ImageId'].isin(train_id+validation_id)]
 
-    print('num_label_train_images =', train_wkt['ImageId'].nunique())
+    print('num_label_train_images =', len(train_id))
     print('num_unlabel_train_images =', len(unlabel_id))
     print('num_validation_images =', len(validation_id))
 
     train_shapes = shapes[shapes['image_id'].isin(train_wkt['ImageId'].unique())]
-    sample_shapes = shapes[shapes['image_id'].isin(sample_wkt['ImageId'].unique())]
     min_train_height = 3328
     min_train_width = 3328
+
+
 
     num_train = train_shapes.shape[0]
 
@@ -49,31 +48,29 @@ def cache_train_16():
     num_mask_channels = 10
 
     num_unlabeltrain = len(unlabel_id)
+    num_validation = len(validation_id)
 
     f = h5py.File(os.path.join(data_path, 'train_label.h5'), 'w', compression='blosc:lz4', compression_opts=9)
     f_unlabel = h5py.File(os.path.join(data_path, 'train_unlabel.h5'), 'w', compression='blosc:lz4', compression_opts=9)
     f_validation = h5py.File(os.path.join(data_path, 'validation.h5'), 'w', compression='blosc:lz4', compression_opts=9)
     imgs_unlabel = f_unlabel.create_dataset('train', (num_unlabeltrain, num_channels, image_rows, image_cols), dtype=np.float16)
     imgs_unlabel_mask = f_unlabel.create_dataset('train_mask', (num_unlabeltrain, num_mask_channels, image_rows, image_cols),
-                                            dtype=np.float16)
+                                            dtype=np.uint8)
 
     imgs = f.create_dataset('train', (num_train, num_channels, image_rows, image_cols), dtype=np.float16)
     imgs_mask = f.create_dataset('train_mask', (num_train, num_mask_channels, image_rows, image_cols), dtype=np.uint8)
 
-    imgs_validation = f_validation.create_dataset('train', (num_unlabeltrain, num_channels, image_rows, image_cols), dtype=np.float16)
-    validation_mask = f_validation.create_dataset('train_mask', (num_train, num_mask_channels, image_rows, image_cols), dtype=np.uint8)
+    imgs_validation = f_validation.create_dataset('train', (num_validation, num_channels, image_rows, image_cols), dtype=np.float16)
+    validation_mask = f_validation.create_dataset('train_mask', (num_validation, num_mask_channels, image_rows, image_cols), dtype=np.uint8)
 
     ids = []
     unlabel_ids=[]
     validation_ids=[]
 
-    i = 0 # process the labelled images
-    for image_id in tqdm(sorted(train_wkt['ImageId'].unique())):
-        # load the 3-band only
-        img_fpath = os.path.join(data_path, 'three_band', '{}.tif')
-        image = tiff.imread(img_fpath.format(image_id)) / 2047.0
+    i = 0
+    for image_id in tqdm(train_id):
+        image = tiff.imread("../data/three_band/{}.tif".format(image_id)) / 2047.0
         #image = extra_functions.read_image_16(image_id)
-
         _, height, width = image.shape
         imgs[i] = image[:, :min_train_height, :min_train_width]
         imgs_mask[i] = extra_functions.generate_mask(image_id,
@@ -81,6 +78,7 @@ def cache_train_16():
                                                      width,
                                                      num_mask_channels=num_mask_channels,
                                                      train=train_wkt)[:, :min_train_height, :min_train_width]
+
         ids += [image_id]
         i += 1
 
@@ -88,11 +86,9 @@ def cache_train_16():
     f['train_ids'] = np.array(ids).astype('|S9')
     f.close()
 
-    i=0 # process the unlabelled images
+    i=0
     for image_id in tqdm(unlabel_id):
-        # load the 3-band only
-        img_fpath = os.path.join(data_path, 'three_band', '{}.tif')
-        image = tiff.imread(img_fpath.format(image_id)) / 2047.0
+        image = tiff.imread("../data/three_band/{}.tif".format(image_id)) / 2047.0
         _, height, width = image.shape
         imgs_unlabel[i] = image[:, :min_train_height, :min_train_width]
         imgs_unlabel_mask[i] = extra_functions.generate_mask(image_id,
@@ -106,10 +102,9 @@ def cache_train_16():
     f_unlabel['train_ids'] = np.array(unlabel_ids).astype('|S9')
     f_unlabel.close()
 
-    i = 0 # process the validating images
+    i = 0
     for image_id in tqdm(validation_id):
-        img_fpath = os.path.join(data_path, 'three_band', '{}.tif')
-        image = tiff.imread(img_fpath.format(image_id)) / 2047.0
+        image = tiff.imread("../data/three_band/{}.tif".format(image_id)) / 2047.0
         _, height, width = image.shape
         imgs_validation[i] = image[:, :min_train_height, :min_train_width]
         validation_mask[i] = extra_functions.generate_mask(image_id,
