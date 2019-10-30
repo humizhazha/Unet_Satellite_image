@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.join('..', 'preprocess'))
 from operations_2d import *
 
 from utils import *
+from evaluate_iou import *
 #from operations_2d import *
 
 #from preprocess import *
@@ -389,16 +390,18 @@ class model(object):
             lab2d = np.reshape(labels_val, (labels_val.shape[0] * 3328*3328))
 
     # For printing the validation results
+            iou = compute_IOU_on_Validation(pred2d,lab2d)
             F1_score = f1_score(lab2d, pred2d, [0, 1], average=None)
             print("Validation Dice Coefficient.... ")
             print("Background:", F1_score[0])
             print("Test Class:", F1_score[1])
+            print("IOU:", iou)
     # print("GM:", F1_score[2])
     # print("WM:", F1_score[3])
 
         # To Save the best model
-            if (max_par < F1_score[1]):
-                max_par =  F1_score[1]
+            if (max_par < iou):
+                max_par =  iou
                 save_model(F.best_checkpoint_dir, self.sess, self.saver)
                 print("Best checkpoint updated from validation results.")
 
