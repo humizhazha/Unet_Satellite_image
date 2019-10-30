@@ -390,7 +390,7 @@ class model(object):
             lab2d = np.reshape(labels_val, (labels_val.shape[0] * 3328*3328))
 
     # For printing the validation results
-            iou = compute_IOU_on_Validation(pred2d,lab2d)
+
             F1_score = f1_score(lab2d, pred2d, [0, 1], average=None)
             print("Validation Dice Coefficient.... ")
             print("Background:", F1_score[0])
