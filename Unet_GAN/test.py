@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.join('..', 'utils'))
 from utils.operations_2d import *
 from utils.utils import *
 from evaluate_iou import *
+import matplotlib.pyplot as plt
 
 F = tf.app.flags.FLAGS
 
@@ -224,6 +225,14 @@ def test(patch_shape, extraction_step):
             print("Background:", F1_score[0])
             print("Test Class:", F1_score[1])
             print("IOU:", sum/F.number_test_images)
+            files = os.listdir(F.results_dir)
+            loss = []
+            for file_name in files:
+                f = open(os.path.join(F.results_dir + file_name), "r")
+                for x in f:
+                    loss.append(float(x))
+                plt.plot(loss, label="loss")
+                plt.savefig(F.results_dir + file_name + '.png')
 
     return
 
