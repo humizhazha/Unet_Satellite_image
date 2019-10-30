@@ -34,8 +34,8 @@ flags.DEFINE_string("best_checkpoint_dir", "checkpoint/trees/best", "Directory n
 flags.DEFINE_string("results_dir", "results/trees/", "Directory name to save the results [results]")
 
 flags.DEFINE_boolean("load_chkpt", False, "True for loading saved checkpoint")
-flags.DEFINE_boolean("training", True, "True for Training ")
-flags.DEFINE_boolean("testing", False, "True for Testing ")
+flags.DEFINE_boolean("training", False, "True for Training ")
+flags.DEFINE_boolean("testing", True, "True for Testing ")
 flags.DEFINE_boolean("badGAN", False, "True if you want to run badGAN based model ")
 
 flags.DEFINE_integer("batch_size", 16, "The size of batch images [64]")

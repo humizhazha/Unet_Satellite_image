@@ -8,10 +8,10 @@ import sys
 import pickle
 
 sys.path.insert(0, os.path.join('..', 'utils'))
-#from operations_2d import *
-#from utils import *
-from utils.operations_2d import *
-from utils.utils import *
+from operations_2d import *
+from utils import *
+#from utils.operations_2d import *
+#from utils.utils import *
 from evaluate_iou import *
 
 F = tf.app.flags.FLAGS
@@ -215,7 +215,7 @@ def test(patch_shape, extraction_step):
             pred2d = np.reshape(images_pred, (images_pred.shape[0] * 3328*3328))
             lab2d = np.reshape(labels_test, (labels_test.shape[0] * 3328*3328))
             sum = 0
-            for i in F.number_test_images:
+            for i in range(F.number_test_images):
                 iou = compute_IOU_on_Validation(images_pred[i], labels_test[i])
                 sum = sum + iou
 
