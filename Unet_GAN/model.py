@@ -320,7 +320,6 @@ class model(object):
             total_gen_FMloss = total_gen_FMloss + g_loss_fm
 
             idx += 1
-
             if F.badGAN:
                 vi_loss = self.vi_loss.eval(feed_dict)
                 print((
@@ -344,18 +343,17 @@ class model(object):
 
         # Save the curret model
         save_model(F.checkpoint_dir, self.sess, self.saver)
-        if epoch % 10 == 0:
+        if epoch % F.validation_epochs == 0:
             avg_train_loss_CE = total_train_loss_CE / (idx * 1.0)
             avg_train_loss_UL = total_train_loss_UL / (idx * 1.0)
             avg_train_loss_FK = total_train_loss_FK / (idx * 1.0)
             avg_gen_FMloss = total_gen_FMloss / (idx * 1.0)
-
             print('\n\n')
 
             total_batches = int(patches_val.shape[0] / F.batch_size)
             print("Total number of batches for validation: ", total_batches)
 
-    # Prediction of validation patches
+            # Prediction of validation patches
             for batch in range(total_batches):
                 patches_feed = patches_val[batch * F.batch_size:(batch + 1) * F.batch_size, :, :, :]
                 labels_feed = labels_val_patch[batch * F.batch_size:(batch + 1) * F.batch_size, :, :]
@@ -368,14 +366,14 @@ class model(object):
                 print(("Validated Patch:[%8d/%8d]") % (batch, total_batches))
                 total_val_loss = total_val_loss + val_loss
 
-    # To compute average patchvise validation loss(cross entropy loss)
+            # To compute average patchvise validation loss(cross entropy loss)
             avg_val_loss = total_val_loss / (total_batches * 1.0)
 
             print("All validation patches Predicted")
             print("Shape of predictions_val, min and max:", predictions_val.shape, np.min(predictions_val),
               np.max(predictions_val))
 
-    # To stitch back the patches into an entire image
+            # To stitch back the patches into an entire image
             val_image_pred = recompose2D_overlap(predictions_val, 3328, 3328, self.extraction_step[0],
                                              self.extraction_step[1])
             val_image_pred = val_image_pred.astype('uint8')
@@ -388,21 +386,20 @@ class model(object):
             pred2d = np.reshape(val_image_pred, (val_image_pred.shape[0] * 3328*3328))
             lab2d = np.reshape(labels_val, (labels_val.shape[0] * 3328*3328))
 
-    # For printing the validation results
+            # For printing the validation results
             F1_score = f1_score(lab2d, pred2d, [0, 1], average=None)
             print("Validation Dice Coefficient.... ")
             print("Background:", F1_score[0])
             print("Test Class:", F1_score[1])
-    # print("GM:", F1_score[2])
-    # print("WM:", F1_score[3])
 
-        # To Save the best model
+
+            # To Save the best model
             if (max_par < F1_score[1]):
                 max_par =  F1_score[1]
                 save_model(F.best_checkpoint_dir, self.sess, self.saver)
                 print("Best checkpoint updated from validation results.")
 
-    # To save the losses for plotting
+            # To save the losses for plotting
             print("Average Validation Loss:", avg_val_loss)
             with open(os.path.join(F.results_dir, 'Avg_Val_loss_GAN.txt'), 'a') as f:
                 f.write('%.2e \n' % avg_val_loss)
@@ -550,15 +547,6 @@ def preprocess_dynamic_unlab(dir,extraction_step,patch_shape,num_images_training
 
     f = h5py.File(os.path.join(F.data_directory, 'train_unlabel.h5'), 'r')
     unlabel_vols  = np.array(f['train'])[:, 2]
-
-    # unlabel_mean = unlabel_vols.mean()
-    # unlabel_std = unlabel_vols.std()
-    # unlabel_vols = (unlabel_vols - unlabel_mean) / unlabel_std
-    # for i in range(unlabel_vols.shape[0]):
-    #     unlabel_vols[i] = ((unlabel_vols[i] - np.min(unlabel_vols[i])) /
-    #                                     (np.max(unlabel_vols[i])-np.min(unlabel_vols[i])))*255
-    #
-    # unlabel_vols = unlabel_vols/127.5 -1.
     x=get_patches_unlab(unlabel_vols, extraction_step, patch_shape,type_class,num_images_training_unlab)
     print("Total Extracted Unlabelled Patches Shape:",x.shape)
     return x

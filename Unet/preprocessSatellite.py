@@ -118,7 +118,6 @@ def get_patches_unlab(unlabel_vols, extraction_step, patch_shape,type_class):
 
         unlabel_train = extract_patches(unlabel_vols[idx], patch_shape, extraction_step, datype="float32")
         x[x_length:, :, :, 0] = unlabel_train[valid_idxs]
-
     return x
 
 
@@ -141,44 +140,3 @@ def preprocess_dynamic_unlab(dir,extraction_step,patch_shape,num_images_training
     x=get_patches_unlab(unlabel_vols, extraction_step, patch_shape,type_class)
     print("Total Extracted Unlabelled Patches Shape:",x.shape)
     return x
-
-class dataset(object):
-  def __init__(self,num_classes, extraction_step, number_images_training, batch_size,
-                    patch_shape, number_unlab_images_training,data_directory,type_class):
-    # Extract labelled and unlabelled patches,
-    self.batch_size=batch_size
-
-    self.data_lab, self.label = preprocess_dynamic_lab(
-                                data_directory,num_classes,extraction_step,
-                                        patch_shape,number_images_training,type_class)
-
-    self.data_lab, self.label = shuffle(self.data_lab, self.label, random_state=0)
-    self.data_unlab = preprocess_dynamic_unlab(data_directory,extraction_step,
-                                                patch_shape, number_unlab_images_training,type_class)
-    self.data_unlab = shuffle(self.data_unlab, random_state=0)
-
-    # If training, repeat labelled data to make its size equal to unlabelled data
-    factor = len(self.data_unlab) // len(self.data_lab)
-    print("Factor for labeled images:",factor)
-    rem = len(self.data_unlab)%len(self.data_lab)
-    temp = self.data_lab[:rem]
-    self.data_lab = np.concatenate((np.repeat(self.data_lab, factor, axis=0), temp), axis=0)
-    temp = self.label[:rem]
-    self.label = np.concatenate((np.repeat(self.label, factor, axis=0), temp), axis=0)
-    assert(self.data_lab.shape == self.data_unlab.shape)
-    print("Data_shape:",self.data_lab.shape,self.data_unlab.shape)
-    print("Data lab max and min:",np.max(self.data_lab),np.min(self.data_lab))
-    print("Data unlab max and min:",np.max(self.data_unlab),np.min(self.data_unlab))
-    # filename = "label.pickle"
-    # filehandler = open(filename,'wb')
-    # pickle.dump(self.label,filehandler)
-    # filehandler.close()
-    print("Label unique:",np.unique(self.label))
-
-  def batch_train(self):
-    self.num_batches = len(self.data_lab) // self.batch_size
-    for i in range(self.num_batches):
-      yield self.data_lab[i*self.batch_size:(i+1)*self.batch_size],\
-             self.data_unlab[i*self.batch_size:(i+1)*self.batch_size],\
-                self.label[i*self.batch_size:(i+1)*self.batch_size]
-

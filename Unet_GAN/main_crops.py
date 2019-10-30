@@ -9,7 +9,7 @@ from test import *
 
 # Define flags
 flags = tf.app.flags
-flags.DEFINE_integer("epoch", 300, "Number of training epochs (default: 300)")
+flags.DEFINE_integer("epoch", 800, "Number of training epochs (default: 300)")
 flags.DEFINE_float("learning_rate_D", 0.0001, "Learning rate of Adam optimizer for Discriminator (default: 0.0001)")
 flags.DEFINE_float("learning_rate_G", 0.0001, "Learning rate of Adam optimizer for Generator (default: 0.0001)")
 flags.DEFINE_float("learning_rate_E", 0.0001, "Learning rate of Adam optimizer for Encoder (default: 0.0001)")
@@ -27,8 +27,10 @@ flags.DEFINE_integer("number_train_unlab_images", 1, "No. of unlabeled images fo
 flags.DEFINE_integer("number_test_images", 2, "No. of images for testing")
 flags.DEFINE_integer("number_validate_images", 1, "No. of images for validating")
 flags.DEFINE_integer("type_number", 5, "No. of class type")
+flags.DEFINE_integer("validation_epochs", 50, "Do validation after every validation epochs")
 
-flags.DEFINE_string("data_directory", "../data", "Directory name containing the dataset")
+flags.DEFINE_string("data_directory", "/home/jxu3/Data/dstl_data", "Directory name containing the dataset")
+#flags.DEFINE_string("data_directory", "../../data", "Directory name containing the dataset")
 flags.DEFINE_string("checkpoint_dir", "checkpoint/crops/current", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_string("best_checkpoint_dir", "checkpoint/crops/best", "Directory name to save the best checkpoints [checkpoint]")
 flags.DEFINE_string("results_dir", "results/crops/", "Directory name to save the results [results]")
@@ -43,7 +45,6 @@ flags.DEFINE_integer("batch_size", 16, "The size of batch images [64]")
 flags.DEFINE_integer("num_mod", 2, "Number of modalities of the input 3-D image")
 flags.DEFINE_integer("num_classes", 2, "Number of output classes to segment")
 flags.DEFINE_integer("noise_dim", 200, "Dimension of noise vector")
-
 
 
 FLAGS = flags.FLAGS

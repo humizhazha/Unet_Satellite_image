@@ -8,10 +8,8 @@ import sys
 import pickle
 
 sys.path.insert(0, os.path.join('..', 'utils'))
-#from operations_2d import *
-#from utils import *
-from utils.operations_2d import *
-from utils.utils import *
+from operations_2d import *
+from utils import *
 
 F = tf.app.flags.FLAGS
 
