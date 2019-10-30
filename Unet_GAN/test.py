@@ -214,13 +214,16 @@ def test(patch_shape, extraction_step):
             # Evaluation
             pred2d = np.reshape(images_pred, (images_pred.shape[0] * 3328*3328))
             lab2d = np.reshape(labels_test, (labels_test.shape[0] * 3328*3328))
-            iou = compute_IOU_on_Validation(images_pred, labels_test)
+            sum = 0
+            for i in F.number_test_images:
+                iou = compute_IOU_on_Validation(images_pred[i], labels_test[i])
+                sum = sum + iou
 
             F1_score = f1_score(lab2d, pred2d, [0, 1], average=None)
             print("Testing Dice Coefficient.... ")
             print("Background:", F1_score[0])
             print("Test Class:", F1_score[1])
-            print("IOU:", iou)
+            print("IOU:", sum/F.number_test_images)
 
     return
 
