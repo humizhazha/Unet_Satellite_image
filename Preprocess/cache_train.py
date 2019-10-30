@@ -6,8 +6,11 @@ Script that caches train data for future training
 """
 Script that caches train data for future training
 """
-
+import sys
 import os
+sys.path.insert(0, os.path.join('..', 'utils'))
+
+
 import pandas as pd
 import extra_functions
 from tqdm import tqdm
@@ -15,14 +18,16 @@ import h5py
 import numpy as np
 import tifffile as tiff
 
-data_path = '../../Data/dstl_data'
+#data_path = '../../Data/dstl_data'
+data_path = '/home/jxu3/Data/dstl_data'
+
 
 gs = pd.read_csv(os.path.join(data_path, 'grid_sizes.csv'), names=['ImageId', 'Xmax', 'Ymin'], skiprows=1)
 
 shapes = pd.read_csv(os.path.join(data_path, '3_shapes.csv'))
 train_id = ['6110_3_1', '6120_2_2', '6140_3_1', '6110_1_2', '6110_4_0']
 validation_id = ['6120_2_0']
-unlabel_id =['6010_4_0','6010_4_1','6010_4_2','6150_2_3','6170_0_4','6170_4_1']
+unlabel_id =['6010_4_2','6150_2_3','6170_0_4','6170_4_1']
 
 
 def cache_train_16():
@@ -35,8 +40,6 @@ def cache_train_16():
     train_shapes = shapes[shapes['image_id'].isin(train_wkt['ImageId'].unique())]
     min_train_height = 3328
     min_train_width = 3328
-
-
 
     num_train = train_shapes.shape[0]
 
@@ -66,10 +69,11 @@ def cache_train_16():
     ids = []
     unlabel_ids=[]
     validation_ids=[]
+    tif_fname = os.path.join(data_path, 'three_band', '{}.tif')
 
     i = 0
     for image_id in tqdm(train_id):
-        image = tiff.imread("../data/three_band/{}.tif".format(image_id)) / 2047.0
+        image = tiff.imread(tif_fname.format(image_id)) / 2047.0
         #image = extra_functions.read_image_16(image_id)
         _, height, width = image.shape
         imgs[i] = image[:, :min_train_height, :min_train_width]
@@ -88,7 +92,7 @@ def cache_train_16():
 
     i=0
     for image_id in tqdm(unlabel_id):
-        image = tiff.imread("../data/three_band/{}.tif".format(image_id)) / 2047.0
+        image = tiff.imread(tif_fname.format(image_id)) / 2047.0
         _, height, width = image.shape
         imgs_unlabel[i] = image[:, :min_train_height, :min_train_width]
         imgs_unlabel_mask[i] = extra_functions.generate_mask(image_id,
@@ -104,7 +108,7 @@ def cache_train_16():
 
     i = 0
     for image_id in tqdm(validation_id):
-        image = tiff.imread("../data/three_band/{}.tif".format(image_id)) / 2047.0
+        image = tiff.imread(tif_fname.format(image_id)) / 2047.0
         _, height, width = image.shape
         imgs_validation[i] = image[:, :min_train_height, :min_train_width]
         validation_mask[i] = extra_functions.generate_mask(image_id,

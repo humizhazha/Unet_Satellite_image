@@ -22,6 +22,8 @@ import shapely.affinity
 import numpy as np
 import tifffile as tiff
 
+import skimage.color as color
+from skimage.transform import rescale
 
 # dirty hacks from SO to allow loading of big cvs's
 # without decrement loop it crashes with C error
