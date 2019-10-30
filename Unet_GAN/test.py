@@ -8,8 +8,12 @@ import sys
 import pickle
 
 sys.path.insert(0, os.path.join('..', 'utils'))
-from operations_2d import *
-from utils import *
+#from operations_2d import *
+#from utils import *
+from utils.operations_2d import *
+from utils.utils import *
+from evaluate_iou import *
+import matplotlib.pyplot as plt
 
 F = tf.app.flags.FLAGS
 
@@ -211,11 +215,24 @@ def test(patch_shape, extraction_step):
             # Evaluation
             pred2d = np.reshape(images_pred, (images_pred.shape[0] * 3328*3328))
             lab2d = np.reshape(labels_test, (labels_test.shape[0] * 3328*3328))
+            sum = 0
+            for i in range(F.number_test_images):
+                iou = compute_IOU_on_Validation(images_pred[i], labels_test[i])
+                sum = sum + iou
 
             F1_score = f1_score(lab2d, pred2d, [0, 1], average=None)
             print("Testing Dice Coefficient.... ")
             print("Background:", F1_score[0])
             print("Test Class:", F1_score[1])
+            print("IOU:", sum/F.number_test_images)
+            files = os.listdir(F.results_dir)
+            loss = []
+            for file_name in files:
+                f = open(os.path.join(F.results_dir + file_name), "r")
+                for x in f:
+                    loss.append(float(x))
+                plt.plot(loss, label="loss")
+                plt.savefig(F.results_dir + file_name + '.png')
 
     return
 

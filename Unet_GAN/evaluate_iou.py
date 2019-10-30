@@ -138,6 +138,30 @@ def compute_IOU():
     iou = count_common/(count_real+count_predict-count_common)
     print("IOU:"+str(iou))
 
+def compute_IOU_on_Validation(predicted_mask,label):
+
+    count_predict = 0
+    for i in range(predicted_mask.shape[0]):
+        for j in range(predicted_mask.shape[1]):
+            if predicted_mask[i][j]==1:
+                count_predict=count_predict+1
+    print("Predicted count:"+str(count_predict))
+
+    count_real = 0
+    for i in range(label.shape[0]):
+        for j in range(label.shape[1]):
+            if label[i][j]==1:
+                count_real=count_real+1
+    print("Real count:"+str(count_real))
+
+    count_common=0
+    for i in range(label.shape[0]):
+        for j in range(label.shape[1]):
+            if label[i][j]==1 and predicted_mask[i][j]==1:
+                count_common=count_common+1
+
+    iou = count_common/(count_real+count_predict-count_common)
+    return iou
 
 if __name__ == '__main__':
     compute_IOU()
