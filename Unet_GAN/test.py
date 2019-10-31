@@ -8,18 +8,14 @@ import sys
 import pickle
 
 sys.path.insert(0, os.path.join('..', 'utils'))
-#from operations_2d import *
-#from utils import *
-from utils.operations_2d import *
-from utils.utils import *
+from operations_2d import *
 from evaluate_iou import *
-from loss_script import *
-import matplotlib.pyplot as plt
+from utils import *
+
 
 F = tf.app.flags.FLAGS
 
 
-# Function to save predicted images as .nii.gz file in results folder
 def save_image(output_dir, image, index):
     pickle_fname = 'predicted_image_{}.pickle'.format(index)
     pickle_fpath = os.path.join(output_dir, pickle_fname)
@@ -226,8 +222,6 @@ def test(patch_shape, extraction_step):
             print("Background:", F1_score[0])
             print("Test Class:", F1_score[1])
             print("IOU:", sum/F.number_test_images)
-            drawLossGraph(F.results_dir)
-            print("The loss image has saved in results directory")
 
     return
 

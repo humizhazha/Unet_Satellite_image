@@ -1,26 +1,20 @@
 from __future__ import division
 import os
 import sys
-
-import h5py
-import tensorflow as tf
-
 sys.path.insert(0, os.path.join('..', 'utils'))
 sys.path.insert(0, os.path.join('..', 'preprocess'))
 
-from operations_2d import *
-
-from utils import *
-from evaluate_iou import *
-#from operations_2d import *
-
-#from preprocess import *
-
+import h5py
 import numpy as np
 from six.moves import xrange
 from sklearn.utils import shuffle
 from sklearn.metrics import f1_score
+import tensorflow as tf
 
+from utils import *
+from evaluate_iou import *
+from operations_2d import *
+from preprocess import *
 
 F = tf.app.flags.FLAGS
 
@@ -266,16 +260,15 @@ class model(object):
                                validating=F.training, testing=F.testing)
 
     predictions_val = np.zeros((patches_val.shape[0], self.patch_shape[0], self.patch_shape[1]), dtype="uint8")
-    max_par = 0.0
-    max_loss = 100
+    max_par, max_loss = 0.0, 100
     for epoch in xrange(int(F.epoch)):
         idx = 0
         batch_iter_train = data.batch_train() # returns labeled batch, unlabeled batch and the labels
         total_val_loss = 0
-        total_train_loss_CE = 0
-        total_train_loss_UL = 0
-        total_train_loss_FK = 0
-        total_gen_FMloss = 0
+        total_train_loss_CE = 0#loss for labeled images, i.e., mean cross entropy (CE)
+        total_train_loss_UL = 0#loss for unlabeled images,
+        total_train_loss_FK = 0#loss for fake images
+        total_gen_FMloss = 0   #loss for the generator, i.e., the feature matching loss
 
         # go thru all patches
         for patches_lab, patches_unlab, labels in batch_iter_train: # the three items
@@ -345,7 +338,7 @@ class model(object):
 
         # Save the curret model
         save_model(F.checkpoint_dir, self.sess, self.saver)
-        if epoch % 10 == 0:
+        if epoch % F.validation_epochs == 0:
             avg_train_loss_CE = total_train_loss_CE / (idx * 1.0)
             avg_train_loss_UL = total_train_loss_UL / (idx * 1.0)
             avg_train_loss_FK = total_train_loss_FK / (idx * 1.0)
@@ -356,7 +349,7 @@ class model(object):
             total_batches = int(patches_val.shape[0] / F.batch_size)
             print("Total number of batches for validation: ", total_batches)
 
-    # Prediction of validation patches
+            # Prediction of validation patches
             for batch in range(total_batches):
                 patches_feed = patches_val[batch * F.batch_size:(batch + 1) * F.batch_size, :, :, :]
                 labels_feed = labels_val_patch[batch * F.batch_size:(batch + 1) * F.batch_size, :, :]
@@ -369,16 +362,16 @@ class model(object):
                 print(("Validated Patch:[%8d/%8d]") % (batch, total_batches))
                 total_val_loss = total_val_loss + val_loss
 
-    # To compute average patchvise validation loss(cross entropy loss)
+            # To compute average patchvise validation loss(cross entropy loss)
             avg_val_loss = total_val_loss / (total_batches * 1.0)
 
             print("All validation patches Predicted")
-            print("Shape of predictions_val, min and max:", predictions_val.shape, np.min(predictions_val),
-              np.max(predictions_val))
+            print("Shape of predictions_val, min and max:",
+                  predictions_val.shape, np.min(predictions_val), np.max(predictions_val))
 
-    # To stitch back the patches into an entire image
-            val_image_pred = recompose2D_overlap(predictions_val, 3328, 3328, self.extraction_step[0],
-                                             self.extraction_step[1])
+            # To stitch back the patches into an entire image
+            val_image_pred = recompose2D_overlap(predictions_val, 3328, 3328,
+                                                 self.extraction_step[0], self.extraction_step[1])
             val_image_pred = val_image_pred.astype('uint8')
 
             print("Shape of Predicted Output Groundtruth Images:", val_image_pred.shape,
@@ -389,23 +382,19 @@ class model(object):
             pred2d = np.reshape(val_image_pred, (val_image_pred.shape[0] * 3328*3328))
             lab2d = np.reshape(labels_val, (labels_val.shape[0] * 3328*3328))
 
-    # For printing the validation results
-
+            # For printing the validation results
             F1_score = f1_score(lab2d, pred2d, [0, 1], average=None)
             print("Validation Dice Coefficient.... ")
             print("Background:", F1_score[0])
             print("Test Class:", F1_score[1])
-            print("IOU:", iou)
-    # print("GM:", F1_score[2])
-    # print("WM:", F1_score[3])
 
-        # To Save the best model
-            if (max_par < iou):
-                max_par =  iou
+            # To Save the best model
+            if (max_par < F1_score[1]):
+                max_par =  F1_score[1]
                 save_model(F.best_checkpoint_dir, self.sess, self.saver)
                 print("Best checkpoint updated from validation results.")
 
-    # To save the losses for plotting
+            # To save the losses for plotting
             print("Average Validation Loss:", avg_val_loss)
             with open(os.path.join(F.results_dir, 'Avg_Val_loss_GAN.txt'), 'a') as f:
                 f.write('%.2e \n' % avg_val_loss)

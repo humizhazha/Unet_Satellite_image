@@ -14,22 +14,17 @@ from shapely.geometry import MultiPolygon, Polygon
 import shapely.wkt
 import shapely.affinity
 import numpy as np
+import tensorflow as tf
 
+F = tf.app.flags.FLAGS
 
-test_ids = '6040_4_4'
-##Change the type here. E.g. 5 represents crops
-mask_channel = 5
+test_ids = ['6040_4_4', '6100_2_2'] # refer to the cache_test.py
+mask_channel = 5  # set the class type e.g. 5 represents the class Crops
+data_path = '/home/jxu3/Data/dstl_data'
 
-
-##Change your data path here
-data_path = '../data'
 train_wkt = pd.read_csv(os.path.join(data_path, 'train_wkt_v4.csv'))
 gs = pd.read_csv(os.path.join(data_path, 'grid_sizes.csv'), names=['ImageId', 'Xmax', 'Ymin'], skiprows=1)
 shapes = pd.read_csv(os.path.join(data_path, '3_shapes.csv'))
-
-##Change your result pickle file here
-result_pickle = os.path.join(data_path, 'result_1unlabel.pickle')
-
 
 
 def get_scalers(height, width, x_max, y_min):
@@ -105,6 +100,8 @@ def _get_xmax_ymin(image_id):
 
 def compute_IOU():
 
+    ##Change your result pickle file here
+    result_pickle = os.path.join(data_path, 'result_1unlabel.pickle')
     with open(result_pickle, "rb") as input_file:
         predicted_mask = pickle.load(input_file)
 
@@ -137,6 +134,7 @@ def compute_IOU():
 
     iou = count_common/(count_real+count_predict-count_common)
     print("IOU:"+str(iou))
+
 
 def compute_IOU_on_Validation(predicted_mask,label):
 
