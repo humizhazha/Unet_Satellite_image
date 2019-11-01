@@ -19,7 +19,7 @@ import numpy as np
 import tifffile as tiff
 
 #data_path = '../../Data/dstl_data'
-data_path = '/home/jxu3/Data/dstl_data'
+data_path = '../data'
 
 
 gs = pd.read_csv(os.path.join(data_path, 'grid_sizes.csv'), names=['ImageId', 'Xmax', 'Ymin'], skiprows=1)
@@ -41,7 +41,7 @@ def cache_train_16():
     min_train_height = 3328
     min_train_width = 3328
 
-    num_train = train_shapes.shape[0]
+    num_train = len(train_id)
 
     image_rows = min_train_height
     image_cols = min_train_width
