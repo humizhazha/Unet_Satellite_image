@@ -31,13 +31,18 @@ flags.DEFINE_integer("validation_epochs", 50, "Do validation after every validat
 
 flags.DEFINE_string("data_directory", "/home/jxu3/Data/dstl_data", "Directory name containing the dataset")
 #flags.DEFINE_string("data_directory", "../../data", "Directory name containing the dataset")
-flags.DEFINE_string("checkpoint_dir", "checkpoint/crops/current", "Directory name to save the checkpoints [checkpoint]")
-flags.DEFINE_string("best_checkpoint_dir", "checkpoint/crops/best", "Directory name to save the best checkpoints [checkpoint]")
-flags.DEFINE_string("results_dir", "results/crops/", "Directory name to save the results [results]")
+
+#flags.DEFINE_string("checkpoint_dir", "checkpoint/crops/2-unlabeled/current", "Directory name to save the checkpoints [checkpoint]")
+#flags.DEFINE_string("best_checkpoint_dir", "checkpoint/crops/2-unlabeled/best", "Directory name to save the best checkpoints [checkpoint]")
+#flags.DEFINE_string("results_dir", "results/crops/2-unlabeled", "Directory name to save the results [results]")
+flags.DEFINE_string("checkpoint_dir", "checkpoint/crops/1-unlabeled/current", "Directory name to save the checkpoints [checkpoint]")
+flags.DEFINE_string("best_checkpoint_dir", "checkpoint/crops/1-unlabeled/best", "Directory name to save the best checkpoints [checkpoint]")
+flags.DEFINE_string("results_dir", "results/crops/1-unlabeled", "Directory name to save the results [results]")
+
 
 flags.DEFINE_boolean("load_chkpt", False, "True for loading saved checkpoint")
-flags.DEFINE_boolean("training", True, "True for Training ")
-flags.DEFINE_boolean("testing", False, "True for Testing ")
+flags.DEFINE_boolean("training", False, "True for Training ")
+flags.DEFINE_boolean("testing", True, "True for Testing ")
 flags.DEFINE_boolean("badGAN", False, "True if you want to run badGAN based model ")
 
 flags.DEFINE_integer("batch_size", 16, "The size of batch images [64]")
@@ -45,7 +50,6 @@ flags.DEFINE_integer("batch_size", 16, "The size of batch images [64]")
 flags.DEFINE_integer("num_mod", 2, "Number of modalities of the input 3-D image")
 flags.DEFINE_integer("num_classes", 2, "Number of output classes to segment")
 flags.DEFINE_integer("noise_dim", 200, "Dimension of noise vector")
-
 
 FLAGS = flags.FLAGS
 
@@ -77,7 +81,7 @@ def main(_):
       network.train()
   if FLAGS.testing:
       # For testing the trained network
-      test(patch_shape,testing_extraction_shape)
+      test(patch_shape, testing_extraction_shape)
 
 
 if __name__ == '__main__':

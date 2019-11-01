@@ -23,16 +23,16 @@ flags.DEFINE_integer("validation_epochs", 50, "Do validation after every validat
 #flags.DEFINE_integer("type_number", 2, "No. of class type")
 flags.DEFINE_integer("type_number", 5, "No. of class type")  # the crops class
 
-#flags.DEFINE_string("data_directory", "/home/jxu3/Data/dstl_data", "Directory name containing the dataset")
-flags.DEFINE_string("data_directory", "../../data", "Directory name containing the dataset")
+flags.DEFINE_string("data_directory", "/home/jxu3/Data/dstl_data", "Directory name containing the dataset")
+#flags.DEFINE_string("data_directory", "../../data", "Directory name containing the dataset")
 
 flags.DEFINE_string("checkpoint_dir", "checkpoint/current", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_string("best_checkpoint_dir", "checkpoint/best", "Directory name to save the best checkpoints [checkpoint]")
 flags.DEFINE_string("results_dir", "results/", "Directory name to save the results [results]")
 
 flags.DEFINE_boolean("load_chkpt", False, "True for loading saved checkpoint")
-flags.DEFINE_boolean("training", True, "True for Training ")
-flags.DEFINE_boolean("testing", False, "True for Testing ")
+flags.DEFINE_boolean("training", False, "True for Training ")
+flags.DEFINE_boolean("testing", True, "True for Testing ")
 
 flags.DEFINE_integer("batch_size", 16, "The size of batch images(30 for data1 and 20 for data2")
 

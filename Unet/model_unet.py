@@ -4,6 +4,7 @@ import pickle
 from six.moves import xrange
 import sys
 sys.path.insert(0, '../utils/')
+sys.path.insert(0, '../preprocess/')
 
 import tensorflow as tf
 import numpy as np
@@ -175,8 +176,7 @@ class UNET(object):
     global_step = tf.placeholder(tf.int32, [], name="global_step_epochs")
 
     # Optimizer operation
-    _optim = tf.train.AdamOptimizer(F.learning_rate_, beta1=F.beta1).minimize(self.u_loss,
-                                                                       var_list=self.u_vars)
+    _optim = tf.train.AdamOptimizer(F.learning_rate_, beta1=F.beta1).minimize(self.u_loss, var_list=self.u_vars)
     tf.global_variables_initializer().run()
 
     # Load checkpoints if required
@@ -195,8 +195,7 @@ class UNET(object):
                              validating=F.training,
                              testing=F.testing)
     predictions_val = np.zeros((patches_val.shape[0], self.patch_shape[0], self.patch_shape[1]), dtype='uint8')
-    max_par=0.0
-    max_loss=100
+    max_par, max_loss = 0.0, 100
     for epoch in xrange(int(F.epoch)):
       idx = 0
       batch_iter_train = data.batch_train()
@@ -221,7 +220,6 @@ class UNET(object):
 
       # Save model
       save_model(F.checkpoint_dir, self.sess, self.saver)
-
       # Validation runs every third epoch
       if epoch % F.validation_epochs ==0:
         avg_train_loss = total_train_loss/(idx*1.0)
@@ -276,10 +274,10 @@ class UNET(object):
         # To save losses for plotting
         print("Average Validation Loss:",avg_val_loss)
         print("Average Training Loss",avg_train_loss)
-        with open('Val_loss.txt', 'a') as f:
-          f.write('%.2e \n' % avg_val_loss)
-        with open('Train_loss.txt', 'a') as f:
-          f.write('%.2e \n' % avg_train_loss)
+        with open(os.path.join(F.results_dir, 'Avg_Val_loss.txt'), 'a') as f:
+            f.write('%.2e \n' % avg_val_loss)
+        with open(os.path.join(F.results_dir, 'Avg_Train_loss.txt'), 'a') as f:
+            f.write('%.2e \n' % avg_train_loss)
     return
 
 
