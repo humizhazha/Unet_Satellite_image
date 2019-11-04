@@ -42,7 +42,7 @@ while decrement:
         maxInt = int(maxInt/10)
         decrement = True
 
-data_path = '../../Data/dstl_data'
+data_path = '../data'
 train_wkt = pd.read_csv(os.path.join(data_path, 'train_wkt_v4.csv'))
 gs = pd.read_csv(os.path.join(data_path, 'grid_sizes.csv'), names=['ImageId', 'Xmax', 'Ymin'], skiprows=1)
 shapes = pd.read_csv(os.path.join(data_path, '3_shapes.csv'))
