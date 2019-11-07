@@ -23,7 +23,6 @@ import numpy as np
 import tifffile as tiff
 
 
-#data_path = '../data/AOI_3_Paris_Train/RGB-PanSharpen'
 
 data_path = '../data/'
 #Total training image number is 1148
@@ -34,7 +33,9 @@ image_width = 162
 image_height = 162
 num_channels = 8
 num_mask_channels = 1
-train_wkt = pd.read_csv(os.path.join(data_path, 'AOI_3_Paris_Train_Building_Solutions.csv'))
+
+train_wkt = pd.read_csv(os.path.join(data_path, 'AOI_3_Paris_Train/summaryData/AOI_3_Paris_Train_Building_Solutions.csv'))
+
 
 def get_scalers(height, width, x_max, y_min):
     """
@@ -100,7 +101,7 @@ def generate_mask(image_id, height, width, num_mask_channels=10, train=train_wkt
             polygons = shapely.wkt.loads(i)
             united_poly.append(polygons)
         united_poly = cascaded_union(united_poly)
-       # polygons = shapely.wkt.loads(poly)
+
         mask[ :, :, mask_channel] = polygons2mask_layer(height, width, united_poly, image_id)
     return mask
 
@@ -129,7 +130,7 @@ def cache_train_16():
     unlabel_ids=[]
     validation_ids=[]
     tif_fname = os.path.join(data_path, 'AOI_3_Paris_Train/MUL', 'MUL_{}.tif')
-   # tif_fname = os.path.join(data_path, 'MUL_AOI_3_Paris_{}.tif')
+
     i = 0
     for image_id in tqdm(label_image_list):
    # for image_id in tqdm(['img1912']):
@@ -152,6 +153,7 @@ def cache_train_16():
         image = tiff.imread(tif_fname.format(image_id))
         height, width,_ = image.shape
         imgs_unlabel[i] = image
+
         imgs_unlabel_mask[i] = generate_mask('AOI_3_Paris_{}'.format(image_id),
                                                      height,
                                                      width,
@@ -168,6 +170,7 @@ def cache_train_16():
         image = tiff.imread(tif_fname.format(image_id))
         height, width, _ = image.shape
         imgs_validation[i] = image
+
         validation_mask[i] = generate_mask('AOI_3_Paris_{}'.format(image_id),
                                                      height,
                                                      width,
