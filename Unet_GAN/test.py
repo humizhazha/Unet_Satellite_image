@@ -13,11 +13,12 @@ from utils import *
 #from utils.operations_2d import *
 #from utils.utils import *
 from evaluate_iou import *
+from utils import *
+
 
 F = tf.app.flags.FLAGS
 
 
-# Function to save predicted images as .nii.gz file in results folder
 def save_image(output_dir, image, index):
     pickle_fname = 'predicted_image_{}.pickle'.format(index)
     pickle_fpath = os.path.join(output_dir, pickle_fname)

@@ -9,8 +9,8 @@ import sys
 sys.path.insert(0, '../utils/')
 
 from operations_2d import *
+from evaluate_iou import *
 from utils import *
-
 import h5py
 
 
@@ -20,13 +20,15 @@ F = tf.app.flags.FLAGS
 d_bns = [batch_norm(name='u_bn{}'.format(i,)) for i in range(14)]
 
 # Function to save predicted images as .nii.gz file in results folder
-def save_image(direc,i,num):
-  img = nib.Nifti1Image(i, None)
-  imgname = 'outputimage_unet_'+str(num)+'.nii.gz'
-  nib.save(img, os.path.join(direc,imgname))
+
+def save_image(output_dir, image, index):
+    pickle_fname = 'predicted_image_{}.pickle'.format(index)
+    pickle_fpath = os.path.join(output_dir, pickle_fname)
+    pickle.dump(image,  open(pickle_fpath, 'wb'))
+
 
 """
- Modified 3D U-Net 
+ Modified 2D U-Net 
 """
 def trained_network_dis(patch, reuse=False):
     """
@@ -189,7 +191,7 @@ To preprocess the labeled training data
 """
 def preprocess_dynamic_lab(dir,num_classes, extraction_step,patch_shape,num_images_training, type,
                                 validating=False,testing=False,num_images_testing=7):
-    f = h5py.File(os.path.join("../data", 'test.h5'), 'r')
+    f = h5py.File(os.path.join(F.data_directory, 'test.h5'), 'r')
     test_vols = np.array(f['test'])[:, 2]
     label = np.array(f['test_mask'])[:, type]
 
@@ -261,24 +263,24 @@ def test(patch_shape,extraction_step):
       print("Shape of Predicted Output Groundtruth Images:",images_pred.shape,
                                                 np.min(images_pred), np.max(images_pred),
                                                 np.mean(images_pred),np.mean(labels_test))
-      
-      # To save the images
+
+      # save the images
       for i in range(F.number_test_images):
-        pred2d=np.reshape(images_pred[i],(3328*3328))
-        lab2d=np.reshape(labels_test[i],(3328*3328))
-        #save_image(F.results_dir,images_pred[i],F.number_train_images+i+2)
-        F1_score = f1_score(lab2d, pred2d,[0,1,2,3],average=None)
+          save_image(F.results_dir, images_pred[i], i)
 
       # Evaluation
-      pred2d=np.reshape(images_pred,(images_pred.shape[0]*3328*3328))
-      lab2d=np.reshape(labels_test,(labels_test.shape[0]*3328*3328))
+      pred2d = np.reshape(images_pred, (images_pred.shape[0] * 3328 * 3328))
+      lab2d = np.reshape(labels_test, (labels_test.shape[0] * 3328 * 3328))
+      sum = 0
+      for i in range(F.number_test_images):
+          iou = compute_IOU_on_Validation(images_pred[i], labels_test[i])
+          sum = sum + iou
 
-      F1_score = f1_score(lab2d, pred2d,[0,1,2,3],average=None)
+      F1_score = f1_score(lab2d, pred2d, [0, 1], average=None)
       print("Testing Dice Coefficient.... ")
-      print("Background:",F1_score[0])
-      print("CSF:",F1_score[1])
-      print("GM:",F1_score[2])
-      print("WM:",F1_score[3])
+      print("Background:", F1_score[0])
+      print("Test Class:", F1_score[1])
+      print("IOU:", sum / F.number_test_images)
 
   return
 

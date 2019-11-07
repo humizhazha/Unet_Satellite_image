@@ -25,9 +25,10 @@ flags.DEFINE_integer("number_train_unlab_images", 1, "No. of unlabeled images fo
 flags.DEFINE_integer("number_test_images", 2, "No. of images for testing")
 flags.DEFINE_integer("number_validate_images", 1, "No. of images for validating")
 flags.DEFINE_integer("type_number", 3, "No. of class type")
+flags.DEFINE_integer("validation_epochs", 50, "Do validation after every validation epochs")
 
-flags.DEFINE_string("data_directory", "/home/jxu3/Data/dstl_data", "Directory name containing the dataset")
-#flags.DEFINE_string("data_directory", "../data", "Directory name containing the dataset")
+#flags.DEFINE_string("data_directory", "/home/jxu3/Data/dstl_data", "Directory name containing the dataset")
+flags.DEFINE_string("data_directory", "../../data", "Directory name containing the dataset")
 flags.DEFINE_string("checkpoint_dir", "checkpoint/track/current", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_string("best_checkpoint_dir", "checkpoint/track/best", "Directory name to save the best checkpoints [checkpoint]")
 flags.DEFINE_string("results_dir", "results/track/", "Directory name to save the results [results]")
@@ -69,13 +70,13 @@ def main(_):
   if FLAGS.training:
     # For training the network
     with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
-      network = model(sess, patch_shape,extraction_step)
+      network = model(sess, patch_shape, extraction_step)
       network.build_model()
       network.train()
 
   if FLAGS.testing:
       # For testing the trained network
-      test(patch_shape,testing_extraction_shape)
+      test(patch_shape, testing_extraction_shape)
 
 
 if __name__ == '__main__':
