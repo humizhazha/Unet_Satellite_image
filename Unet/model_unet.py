@@ -18,6 +18,46 @@ from utils import *
 
 F = tf.app.flags.FLAGS
 
+def save_model(checkpoint_dir, epoch_num, sess, saver):
+    '''
+      Save a Tensorflow model
+    :param checkpoint_dir: the directory for keeping the model
+    :param epoch_num: the iteration number
+    :param sess: a Tensorflow session
+    :param saver:
+    :return: void
+    '''
+    # save the model to a file with iteration number
+    model_name = 'model_{}.ckpt'.format(epoch_num)
+    if not os.path.exists(checkpoint_dir):
+        os.makedirs(checkpoint_dir)
+    saver.save(sess, os.path.join(checkpoint_dir, model_name))
+
+    # save the model to the default file
+    model_name = 'model.ckpt'
+    saver.save(sess, os.path.join(checkpoint_dir, model_name))
+
+
+"""
+Load tensorflow model
+Parameters:
+* checkpoint_dir - name of the directory where model is to be loaded from
+* sess - current tensorflow session
+* saver - tensorflow saver
+Returns: True if the model loaded successfully, else False
+"""
+def load_model(checkpoint_dir, sess, saver):
+    print(" [*] Reading checkpoints...")
+    ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
+    if ckpt and ckpt.model_checkpoint_path:
+        ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
+        saver.restore(sess, os.path.join(checkpoint_dir, ckpt_name))
+        return True
+    else:
+        return False
+
+
+
 class UNET(object):
   """
   Model class
@@ -139,16 +179,13 @@ class UNET(object):
     self.phase = tf.placeholder(tf.bool)
 
     # Forward pass through network
-    # To use original 3D U-Net use ***network*** function and don't forget to change the testing file
-    #self._logits_labeled, self._probdist = self.network(self.patches_labeled, self.phase, self.patch_shape, reuse=False)
     self._logits_labeled, self._probdist = self.network_dis(self.patches_labeled, reuse=False)
 
     #Validation Output
     self.Val_output = tf.argmax(self._probdist, axis=-1)
 
-    # Weighted ross entropy loss
-    # Weights of different class are: Background- 0.33, CSF- 1.5, GM- 0.83, WM- 1.33
-    class_weights = tf.constant([[0.33, 1.5]])
+    # Weighted ross entropy loss:  background vs. test class ( the weight sum is 2 )
+    class_weights = tf.constant([[0.2, 1.8]])
     weights = tf.reduce_sum(class_weights * self.labels_1hot, axis=-1)
     unweighted_losses = tf.nn.softmax_cross_entropy_with_logits_v2(logits=self._logits_labeled, labels=self.labels_1hot)
     weighted_losses = unweighted_losses * weights
@@ -157,7 +194,7 @@ class UNET(object):
     #define the trainable variables
     t_vars = tf.trainable_variables()
     self.u_vars = [var for var in t_vars if 'u_' in var.name]
-    self.saver = tf.train.Saver()
+    self.saver = tf.train.Saver(max_to_keep=F.epoch)
 
 
   """
@@ -219,7 +256,7 @@ class UNET(object):
         print(("Epoch:[%2d] [%4d/%4d] Loss:%.2e \n")%(epoch, idx,data.num_batches,u_loss))
 
       # Save model
-      save_model(F.checkpoint_dir, self.sess, self.saver)
+      save_model(F.checkpoint_dir, epoch, self.sess, self.saver)
       # Validation runs every third epoch
       if epoch % F.validation_epochs ==0:
         avg_train_loss = total_train_loss/(idx*1.0)
@@ -244,9 +281,8 @@ class UNET(object):
         avg_val_loss = total_val_loss/(total_batches*1.0)
 
         print("All validation patches Predicted")
-        print("Shape of predictions_val, min and max:",predictions_val.shape,np.min(predictions_val),
-                                                                          np.max(predictions_val))
-
+        print("Shape of predictions_val, min and max:",predictions_val.shape, np.min(predictions_val),
+                                                                           np.max(predictions_val))
         val_image_pred = recompose2D_overlap(predictions_val, 3328, 3328, self.extraction_step[0],
                                              self.extraction_step[1])
         val_image_pred = val_image_pred.astype('uint8')
@@ -268,7 +304,7 @@ class UNET(object):
         # To Save the best model
         if (max_par < F1_score[1]):
           max_par = F1_score[1]
-          save_model(F.best_checkpoint_dir, self.sess, self.saver)
+          save_model(F.best_checkpoint_dir, epoch, self.sess, self.saver)
           print("Best checkpoint updated from validation results.")
 
         # To save losses for plotting
@@ -282,7 +318,7 @@ class UNET(object):
 
 
 """
-To extract patches from a 3D image
+To extract patches from a 2D image
 """
 def extract_patches(volume, patch_shape, extraction_step,datype='float32'):
   patch_w, patch_d = patch_shape[0], patch_shape[1]
@@ -292,11 +328,10 @@ def extract_patches(volume, patch_shape, extraction_step,datype='float32'):
   N_patches_w = (img_w-patch_w)//stride_w+1
   N_patches_d = (img_d-patch_d)//stride_d+1
   N_patches_img =  N_patches_w * N_patches_d
-  raw_patch_martrix = np.zeros((N_patches_img,patch_w,patch_d),dtype=datype)
+  raw_patch_martrix = np.zeros((N_patches_img, patch_w, patch_d), dtype=datype)
   k=0
 
   #iterator over all the patches
-
   for d in range((img_d-patch_d)//stride_d+1):
     for w in range((img_w-patch_w)//stride_w+1):
         raw_patch_martrix[k]=volume[w*stride_w:(w*stride_w)+patch_w, d*stride_d:(d*stride_d)+patch_d]
@@ -307,7 +342,7 @@ def extract_patches(volume, patch_shape, extraction_step,datype='float32'):
 
 
 """
-To extract labeled patches from array of 3D labeled images
+To extract labeled patches from array of 2D labeled images
 """
 def get_patches_lab(threeband_vols,
                     label_vols,
@@ -327,7 +362,7 @@ def get_patches_lab(threeband_vols,
                                         extraction_step,
                                         datype="uint8")
 
-        # Select only those who are important for processing
+        # Select only those that are important for processing
         if validating:
             valid_idxs = np.where(np.sum(label_patches, axis=(1, 2)) != -1)
         else:
@@ -375,7 +410,6 @@ def preprocess_dynamic_lab(dir,
         f = h5py.File(os.path.join(F.data_directory, 'train_label.h5'), 'r')
 
     label_vols = np.array(f['train'])[:, 2]
-
     label = np.array(f['train_mask'])[:, type_class]
 
     x, y = get_patches_lab(label_vols,
@@ -392,8 +426,9 @@ def preprocess_dynamic_lab(dir,
     else:
         return x, y
 
+
 """
-To extract labeled patches from array of 3D ulabeled images
+To extract labeled patches from array of 2D ulabeled images
 """
 def get_patches_unlab(unlabel_vols, extraction_step, patch_shape,type_class,num_images_training_unlab):
     patch_shape_1d = patch_shape[0]
@@ -416,8 +451,8 @@ def get_patches_unlab(unlabel_vols, extraction_step, patch_shape,type_class,num_
 
         unlabel_train = extract_patches(unlabel_vols[idx], patch_shape, extraction_step, datype="float32")
         x[x_length:, :, :, 0] = unlabel_train[valid_idxs]
-
     return x
+
 
 
 class dataset(object):
@@ -458,4 +493,3 @@ class dataset(object):
       yield self.data_lab[i * self.batch_size:(i + 1) * self.batch_size], \
             self.data_unlab[i * self.batch_size:(i + 1) * self.batch_size], \
             self.label[i * self.batch_size:(i + 1) * self.batch_size]
-
