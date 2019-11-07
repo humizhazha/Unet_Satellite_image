@@ -34,7 +34,7 @@ image_width = 162
 image_height = 162
 num_channels = 8
 num_mask_channels = 1
-train_wkt = pd.read_csv(os.path.join(data_path, 'AOI_3_Paris_Train_Building_Solutions.csv'))
+train_wkt = pd.read_csv(os.path.join(data_path, 'AOI_3_Paris_Train/summaryData/AOI_3_Paris_Train_Building_Solutions.csv'))
 
 def get_scalers(height, width, x_max, y_min):
     """
@@ -100,7 +100,6 @@ def generate_mask(image_id, height, width, num_mask_channels=10, train=train_wkt
             polygons = shapely.wkt.loads(i)
             united_poly.append(polygons)
         united_poly = cascaded_union(united_poly)
-       # polygons = shapely.wkt.loads(poly)
         mask[ :, :, mask_channel] = polygons2mask_layer(height, width, united_poly, image_id)
     return mask
 
@@ -115,21 +114,21 @@ def cache_train_16():
     f_unlabel = h5py.File(os.path.join(data_path, 'train_unlabel.h5'), 'w', compression='blosc:lz4', compression_opts=9)
     f_validation = h5py.File(os.path.join(data_path, 'validation.h5'), 'w', compression='blosc:lz4', compression_opts=9)
 
-    imgs_unlabel = f_unlabel.create_dataset('train', (num_unlabel_train_image, num_channels, image_width, image_height), dtype=np.float16)
-    imgs_unlabel_mask = f_unlabel.create_dataset('train_mask', (num_unlabel_train_image, num_mask_channels, image_width, image_height),
+    imgs_unlabel = f_unlabel.create_dataset('train', (num_unlabel_train_image, image_width, image_height, num_channels), dtype=np.float16)
+    imgs_unlabel_mask = f_unlabel.create_dataset('train_mask', (num_unlabel_train_image, image_width, image_height, num_mask_channels),
                                             dtype=np.uint8)
 
     imgs = f_label.create_dataset('train', (num_label_train_image,image_width, image_height, num_channels), dtype=np.float16)
     imgs_mask = f_label.create_dataset('train_mask', (num_label_train_image,image_width, image_height, num_mask_channels), dtype=np.uint8)
 
-    imgs_validation = f_validation.create_dataset('train', (num_validate_image, num_channels, image_width, image_height), dtype=np.float16)
-    validation_mask = f_validation.create_dataset('train_mask', (num_validate_image, num_mask_channels, image_width, image_height), dtype=np.uint8)
+    imgs_validation = f_validation.create_dataset('train', (num_validate_image, image_width, image_height, num_channels), dtype=np.float16)
+    validation_mask = f_validation.create_dataset('train_mask', (num_validate_image, image_width, image_height, num_mask_channels), dtype=np.uint8)
 
     ids = []
     unlabel_ids=[]
     validation_ids=[]
-    tif_fname = os.path.join(data_path, 'AOI_3_Paris_Train/RGB-PanSharpen', 'MUL_AOI_3_Paris_{}.tif')
-   # tif_fname = os.path.join(data_path, 'MUL_AOI_3_Paris_{}.tif')
+    tif_fname = os.path.join(data_path, 'AOI_3_Paris_Train/MUL', 'MUL_{}.tif')
+    #tif_fname = os.path.join(data_path, 'MUL_AOI_3_Paris_{}.tif')
     i = 0
     for image_id in tqdm(label_image_list):
    # for image_id in tqdm(['img1912']):
@@ -151,7 +150,7 @@ def cache_train_16():
     for image_id in tqdm(unlabel_image_list):
         image = tiff.imread(tif_fname.format(image_id))
         height, width,_ = image.shape
-        imgs[i] = image
+        imgs_unlabel[i] = image
         imgs_unlabel_mask[i] = generate_mask(image_id,
                                                      height,
                                                      width,
@@ -167,7 +166,7 @@ def cache_train_16():
     for image_id in tqdm(validate_image_list):
         image = tiff.imread(tif_fname.format(image_id))
         height, width, _ = image.shape
-        imgs[i] = image
+        imgs_validation[i] = image
         validation_mask[i] = generate_mask(image_id,
                                                      height,
                                                      width,
