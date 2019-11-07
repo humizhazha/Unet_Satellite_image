@@ -14,7 +14,7 @@ import tifffile as tiff
 import extra_functions
 
 #data_path = '../../Data/dstl_data'
-data_path = '/home/jxu3/Data/dstl_data'
+data_path = '../data'
 
 gs = pd.read_csv(os.path.join(data_path, 'grid_sizes.csv'), names=['ImageId', 'Xmax', 'Ymin'], skiprows=1)
 
