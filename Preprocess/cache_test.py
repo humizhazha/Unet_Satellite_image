@@ -13,8 +13,9 @@ import numpy as np
 import tifffile as tiff
 import extra_functions
 
-#data_path = '../../data'
-data_path = '/home/jxu3/Data/dstl_data'
+#data_path = '../../Data/dstl_data'
+data_path = '../data'
+
 
 test_id = ['6120_2_0']
 
