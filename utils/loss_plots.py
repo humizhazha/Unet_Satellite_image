@@ -46,19 +46,19 @@ def draw_Unet_GAN_loss_curves(data_path):
     print('Figure exported to ' + os.path.join(data_path, 'unet_gan_loss.png'))
 
 
-def draw_Unet_loss_curves(data_path):
+def draw_Unet_loss_curves(data_path, sampling_rate):
     '''
      Plot curves for the Unet_GAN and export the figures to the given directory
         :param data_path: the path of the directory that contains the following files:
-               (1) 'Train_loss.txt': average training losses
-               (2) 'Val_loss.txt': validation losses
+               (1) 'Avg_Train_loss.txt': average training losses
+               (2) 'Avg_Validation_loss.txt': validation losses
         :return: void
     '''
-    with open(os.path.join(data_path, 'Train_loss.txt'), "r") as f:
+    with open(os.path.join(data_path, 'Avg_Train_loss.txt'), "r") as f:
         losses = [float(x.strip()) for x in f]
         plt.plot(losses, 'r', label="Training loss")
 
-    with open(os.path.join(data_path, 'Val_loss.txt'), "r") as f:
+    with open(os.path.join(data_path, 'Avg_Val_loss.txt'), "r") as f:
         losses = [float(x.strip()) for x in f]
         plt.plot(losses, 'b', label="Validation loss")
 
@@ -70,11 +70,11 @@ def draw_Unet_loss_curves(data_path):
     print('Figure exported to ' + os.path.join(data_path, 'unet_loss.png') )
 
 if __name__ == '__main__':
-    gan_loss_dir = os.path.join('..', 'Unet_GAN', 'results', 'crops', '2-unlabeled')
-    draw_Unet_GAN_loss_curves(gan_loss_dir)
+    #gan_loss_dir = os.path.join('..', 'Unet_GAN', 'results', 'crops', '2-unlabeled')
+    #draw_Unet_GAN_loss_curves(gan_loss_dir)
 
-    #unet_loss_dir = os.path.join('..', 'Unet', 'results', 'crops')
-    #draw_Unet_loss_curves(unet_loss_dir)
+    unet_loss_dir = os.path.join('..', 'Unet', 'results', 'crops')
+    draw_Unet_loss_curves(unet_loss_dir, sampling_rate)
 
 
 

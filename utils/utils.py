@@ -6,37 +6,49 @@ import tensorflow as tf
 F = tf.app.flags.FLAGS
 
 
-"""
-Save tensorflow model
-Parameters:
-* checkpoint_dir - name of the directory where model is to be saved
-* sess - current tensorflow session
-* saver - tensorflow saver
-"""
-def save_model(checkpoint_dir, sess, saver):
-  model_name = "model.ckpt"
+def save_model(checkpoint_dir, epoch_num, sess, saver):
+  '''
+    Save a Tensorflow model
+  :param checkpoint_dir: the directory for keeping the model
+  :param epoch_num: the iteration number
+  :param sess: a Tensorflow session
+  :param saver:
+  :return: void
+  '''
+  # save the model to a file with iteration number
+  model_name = 'model_{}.ckpt'.format(epoch_num)
   if not os.path.exists(checkpoint_dir):
     os.makedirs(checkpoint_dir)
   saver.save(sess, os.path.join(checkpoint_dir, model_name))
 
+  # save the model to the default file
+  model_name = 'model.ckpt'
+  saver.save(sess, os.path.join(checkpoint_dir, model_name))
 
-"""
-Load tensorflow model
-Parameters:
-* checkpoint_dir - name of the directory where model is to be loaded from
-* sess - current tensorflow session
-* saver - tensorflow saver
-Returns: True if the model loaded successfully, else False
-"""
-def load_model(checkpoint_dir, sess, saver):
-  print(" [*] Reading checkpoints...")
+
+def load_model(checkpoint_dir, epoch_num, sess, saver):
+  '''
+  Load tensorflow model
+  :param checkpoint_dir:  name of the directory where model is to be loaded from
+  :param epoch_num: the iteration number
+  :param sess: current tensorflow session
+  :param saver: tensorflow saver
+  :return: True if the model loaded successfully, else False
+  '''
+
+  print(" [*] Reading checkpoint at epoch number {}...".format(epoch_num))
   ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
   if ckpt and ckpt.model_checkpoint_path:
-    ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
-    saver.restore(sess, os.path.join(checkpoint_dir, ckpt_name))
+    #ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
+    #saver.restore(sess, os.path.join(checkpoint_dir, ckpt_name))
+    model_name = 'model_{}.ckpt'.format(epoch_num)
+    model_fpath = os.path.join(checkpoint_dir, model_name)
+    print(" ... loading checkpoint from {}".format(model_fpath))
+    saver.restore(sess, model_fpath)
     return True
   else:
     return False
+
 
 """
 To recompose an array of 3D images from patches

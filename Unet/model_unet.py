@@ -1,8 +1,9 @@
 from __future__ import division
+
 import os
 import pickle
-from six.moves import xrange
 import sys
+from six.moves import xrange
 sys.path.insert(0, '../utils/')
 sys.path.insert(0, '../preprocess/')
 
@@ -17,45 +18,6 @@ from preprocess import *
 from utils import *
 
 F = tf.app.flags.FLAGS
-
-def save_model(checkpoint_dir, epoch_num, sess, saver):
-    '''
-      Save a Tensorflow model
-    :param checkpoint_dir: the directory for keeping the model
-    :param epoch_num: the iteration number
-    :param sess: a Tensorflow session
-    :param saver:
-    :return: void
-    '''
-    # save the model to a file with iteration number
-    model_name = 'model_{}.ckpt'.format(epoch_num)
-    if not os.path.exists(checkpoint_dir):
-        os.makedirs(checkpoint_dir)
-    saver.save(sess, os.path.join(checkpoint_dir, model_name))
-
-    # save the model to the default file
-    model_name = 'model.ckpt'
-    saver.save(sess, os.path.join(checkpoint_dir, model_name))
-
-
-"""
-Load tensorflow model
-Parameters:
-* checkpoint_dir - name of the directory where model is to be loaded from
-* sess - current tensorflow session
-* saver - tensorflow saver
-Returns: True if the model loaded successfully, else False
-"""
-def load_model(checkpoint_dir, sess, saver):
-    print(" [*] Reading checkpoints...")
-    ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
-    if ckpt and ckpt.model_checkpoint_path:
-        ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
-        saver.restore(sess, os.path.join(checkpoint_dir, ckpt_name))
-        return True
-    else:
-        return False
-
 
 
 class UNET(object):
@@ -357,7 +319,7 @@ def get_patches_lab(threeband_vols,
     for idx in range(num_images_training):
         y_length = len(y)
         print(("Extracting Label Patches from Image %2d ....") % (1 + idx))
-        label_patches = extract_patches(label_vols[idx],  # the label
+        label_patches = extract_patches(label_vols[idx],  # the labels
                                         patch_shape,
                                         extraction_step,
                                         datype="uint8")
@@ -389,7 +351,7 @@ To preprocess the unlabeled training data
 def preprocess_dynamic_unlab(dir,extraction_step,patch_shape,num_images_training_unlab, type_class):
 
     f = h5py.File(os.path.join(F.data_directory, 'train_unlabel.h5'), 'r')
-    unlabel_vols  = np.array(f['train'])[:, 2]
+    unlabel_vols  = np.array(f['polygons'])[:, 2]
     x=get_patches_unlab(unlabel_vols, extraction_step, patch_shape,type_class,num_images_training_unlab)
     print("Total Extracted Unlabelled Patches Shape:",x.shape)
     return x
@@ -409,7 +371,7 @@ def preprocess_dynamic_lab(dir,
     else:
         f = h5py.File(os.path.join(F.data_directory, 'train_label.h5'), 'r')
 
-    label_vols = np.array(f['train'])[:, 2]
+    label_vols = np.array(f['polygons'])[:, 2]
     label = np.array(f['train_mask'])[:, type_class]
 
     x, y = get_patches_lab(label_vols,

@@ -274,7 +274,7 @@ class model(object):
         for patches_lab, patches_unlab, labels in batch_iter_train: # the three items
             # Network update
             sample_z_gen = np.random.uniform(0, 1, [F.batch_size, F.noise_dim]).astype(np.float32)
-            # d_optim = tf.train.AdamOptimizer(F.learning_rate_D, beta1=F.beta1D)
+            # d_optim = tf.polygons.AdamOptimizer(F.learning_rate_D, beta1=F.beta1D)
             #             .minimize(self.d_loss, var_list=self.d_vars)
             _ = self.sess.run(d_optim,
                               feed_dict={self.patches_lab: patches_lab,
@@ -448,7 +448,7 @@ def get_patches_lab(threeband_vols,
     for idx in range(num_images_training):
         y_length = len(y)
         print(("Extracting Label Patches from Image %2d ....") % (1 + idx))
-        label_patches = extract_patches(label_vols[idx],  # the label
+        label_patches = extract_patches(label_vols[idx],  # the labels
                                         patch_shape,
                                         extraction_step,
                                         datype="uint8")
@@ -488,7 +488,7 @@ def preprocess_dynamic_lab(dir,
     else:
         f = h5py.File(os.path.join(F.data_directory, 'train_label.h5'), 'r')
 
-    label_vols = np.array(f['train'])[:, 2]
+    label_vols = np.array(f['polygons'])[:, 2]
 
     label = np.array(f['train_mask'])[:, type_class]
 
@@ -541,7 +541,7 @@ To preprocess the unlabeled training data
 def preprocess_dynamic_unlab(dir,extraction_step,patch_shape,num_images_training_unlab, type_class):
 
     f = h5py.File(os.path.join(F.data_directory, 'train_unlabel.h5'), 'r')
-    unlabel_vols  = np.array(f['train'])[:, 2]
+    unlabel_vols  = np.array(f['polygons'])[:, 2]
 
     # unlabel_mean = unlabel_vols.mean()
     # unlabel_std = unlabel_vols.std()

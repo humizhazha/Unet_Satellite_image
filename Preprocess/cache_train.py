@@ -1,10 +1,10 @@
 from __future__ import division
 
 """
-Script that caches train data for future training
+Script that caches polygons data for future training
 """
 """
-Script that caches train data for future training
+Script that caches polygons data for future training
 """
 import sys
 import os
@@ -46,13 +46,13 @@ def cache_train_16():
     f_unlabeled = h5py.File(os.path.join(data_path, 'train_unlabel.h5'), 'w', compression='blosc:lz4', compression_opts=9)
     f_validation = h5py.File(os.path.join(data_path, 'validation.h5'), 'w', compression='blosc:lz4', compression_opts=9)
 
-    imgs_unlabeled = f_unlabeled.create_dataset('train', (num_unlabeled_train, num_channels, image_rows, image_cols), dtype=np.float16)
+    imgs_unlabeled = f_unlabeled.create_dataset('polygons', (num_unlabeled_train, num_channels, image_rows, image_cols), dtype=np.float16)
     imgs_unlabeled_mask = f_unlabeled.create_dataset('train_mask', (num_unlabeled_train, num_mask_channels, image_rows, image_cols), dtype=np.uint8)
 
-    imgs_labeled = f_labeled.create_dataset('train', (num_train, num_channels, image_rows, image_cols), dtype=np.float16)
+    imgs_labeled = f_labeled.create_dataset('polygons', (num_train, num_channels, image_rows, image_cols), dtype=np.float16)
     imgs_labeled_mask = f_labeled.create_dataset('train_mask', (num_train, num_mask_channels, image_rows, image_cols), dtype=np.uint8)
 
-    imgs_validation = f_validation.create_dataset('train', (num_validation, num_channels, image_rows, image_cols), dtype=np.float16)
+    imgs_validation = f_validation.create_dataset('polygons', (num_validation, num_channels, image_rows, image_cols), dtype=np.float16)
     imgs_validation_mask = f_validation.create_dataset('train_mask', (num_validation, num_mask_channels, image_rows, image_cols), dtype=np.uint8)
 
     ids, unlabel_ids, validation_ids = [], [], []

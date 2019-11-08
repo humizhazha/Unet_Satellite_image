@@ -1,5 +1,5 @@
 """
-Script that caches train data for future training
+Script that caches polygons data for future training
 """
 
 from __future__ import division
