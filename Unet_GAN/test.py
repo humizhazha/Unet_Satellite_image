@@ -10,10 +10,7 @@ import pickle
 sys.path.insert(0, os.path.join('..', 'utils'))
 from operations_2d import *
 from utils import *
-#from utils.operations_2d import *
-#from utils.utils import *
 from evaluate_iou import *
-from utils import *
 
 
 F = tf.app.flags.FLAGS
@@ -108,8 +105,7 @@ def get_patches_lab(threeband_vols,label_vols, extraction_step,
     for idx in range(num_images_training):
         y_length = len(y)
         print(("Extracting Label Patches from Image %2d ....") % (1 + idx))
-        label_patches = extract_patches(label_vols[idx], patch_shape, extraction_step,
-                                        datype="uint8")
+        label_patches = extract_patches(label_vols[idx], patch_shape, extraction_step, datype="uint8")
 
         # Select only those who are important for processing
         valid_idxs = np.where(np.count_nonzero(label_patches, axis=(1, 2)) != -1)
@@ -132,16 +128,13 @@ def get_patches_lab(threeband_vols,label_vols, extraction_step,
 """
 To preprocess the labeled training data
 """
-def preprocess_dynamic_lab(dir, num_classes, extraction_step,
-                           patch_shape, num_images_training, type,
-                        validating=False,testing=False,num_images_testing=7):
+def preprocess_dynamic_lab(extraction_step, patch_shape, num_images_training, type):
     f = h5py.File(os.path.join(F.data_directory, 'test.h5'), 'r')
-    test_vols = np.array(f['test'])[:, 2]
+    test_vols = np.array(f['test'])[:, 2] # choose the last band
     label = np.array(f['test_mask'])[:, type]
 
-    x,y=get_patches_lab(test_vols,label,extraction_step,patch_shape,num_images_training=num_images_training)
+    x,y = get_patches_lab(test_vols, label, extraction_step, patch_shape, num_images_training=num_images_training)
     print("Total Extracted Test Patches Shape:",x.shape,y.shape)
-
     return x, label
 
 
@@ -153,6 +146,15 @@ def preprocess_dynamic_lab(dir, num_classes, extraction_step,
 """
 def test(patch_shape, extraction_step):
 
+    bg_f1score_fpath = os.path.join(F.results_dir, 'Avg_Bg_F1score.txt')
+    if os.path.exists(bg_f1score_fpath): os.remove(bg_f1score_fpath)
+
+    fg_f1score_fpath = os.path.join(F.results_dir, 'Avg_Fg_F1score.txt')
+    if os.path.exists(fg_f1score_fpath): os.remove(fg_f1score_fpath)
+
+    iou_fpath = os.path.join(F.results_dir, 'Avg_IOU.txt')
+    if os.path.exists(iou_fpath): os.remove(iou_fpath)
+
     with tf.Graph().as_default(): # define a graph
         test_patches = tf.placeholder(tf.float32,
                                       [F.batch_size, patch_shape[0], patch_shape[1], F.num_mod],
@@ -163,71 +165,80 @@ def test(patch_shape, extraction_step):
         print("Output Patch Shape:", output.get_shape())
 
         initializer = tf.global_variables_initializer()
-        # To load the saved checkpoint
+
         saver = tf.train.Saver()
         with tf.Session() as sess:
             # initialize all operations
             sess.run(initializer)
-            try:
-                load_model(F.checkpoint_dir, sess, saver)
-                print(" Checkpoint loaded succesfully!....\n")
-            except:
-                print(" [!] Checkpoint loading failed!....\n")
-                return
+            for epoch_num in xrange(1, int(F.epoch)):
+                try:
+                    load_model(F.checkpoint_dir, epoch_num, sess, saver)
+                    print(" Checkpoint loaded succesfully at epoch {}!....\n".format(epoch_num))
+                except Exception as e:
+                    print(" [!] Checkpoint at epoch {} loading failed!....\n".format(epoch_num))
+                    print(str(e))
+                    return
 
-            # Get patches from test images
-            patches_test, labels_test = \
-                preprocess_dynamic_lab(F.data_directory, F.num_classes,
-                                       extraction_step, patch_shape,
-                                       F.number_train_images, F.type_number,
-                                       validating=F.training,
-                                       testing=F.testing,
-                                       num_images_testing=F.number_test_images)
-            total_batches = int(patches_test.shape[0] / F.batch_size)
-
-            # Array to store the prediction results
-            predictions_test = np.zeros((patches_test.shape[0], patch_shape[0], patch_shape[1]))
-            print("max and min of patches_test:", np.min(patches_test), np.max(patches_test))
-            print("Total number of Batches: ", total_batches)
-
-            # Batch wise prediction
-            for batch in range(total_batches):
-                patches_feed = patches_test[batch * F.batch_size:(batch + 1) * F.batch_size, :, :, :]
-                preds = sess.run(output, feed_dict={test_patches: patches_feed})
-                predictions_test[batch * F.batch_size:(batch + 1) * F.batch_size, :, :] = preds
-                print(("Processed_batch:[%8d/%8d]") % (batch, total_batches))
-
-            print("All patches Predicted")
-            print("Shape of predictions_test, min and max:",
-                  predictions_test.shape, np.min(predictions_test), np.max(predictions_test))
-
-            # To stitch the image back
-            images_pred = recompose2D_overlap(predictions_test, 3328, 3328, extraction_step[0],extraction_step[1])
-
-            print("Shape of Predicted Output Groundtruth Images:", images_pred.shape,
-                  np.min(images_pred), np.max(images_pred),
-                  np.mean(images_pred), np.mean(labels_test))
-
-            # To save the images
-            for i in range(F.number_test_images):
-                save_image(F.results_dir, images_pred[i], i)
-
-            # Evaluation
-            pred2d = np.reshape(images_pred, (images_pred.shape[0] * 3328*3328))
-            lab2d = np.reshape(labels_test, (labels_test.shape[0] * 3328*3328))
-            sum = 0
-            for i in range(F.number_test_images):
-                iou = compute_IOU_on_Validation(images_pred[i], labels_test[i])
-                sum = sum + iou
-
-            F1_score = f1_score(lab2d, pred2d, [0, 1], average=None)
-            print("Testing Dice Coefficient.... ")
-            print("Background:", F1_score[0])
-            print("Test Class:", F1_score[1])
-            print("IOU:", sum/F.number_test_images)
-
+                bg_f1score, fg_f1score, avg_uoi = \
+                  test_checkpoint(sess, epoch_num, patch_shape, extraction_step, test_patches, phase, output)
+                with open(bg_f1score_fpath, 'a') as f:
+                    f.write('%.4e \n' % bg_f1score)
+                with open(fg_f1score_fpath, 'a') as f:
+                    f.write('%.4e \n' % fg_f1score)
+                with open(iou_fpath, 'a') as f:
+                    f.write('%.4e \n' % avg_uoi)
     return
 
+
+def test_checkpoint(sess, epoch_num, patch_shape, extraction_step, test_patches, phase, output):
+
+    # Get patches from test images
+    patches_test, labels_test = \
+        preprocess_dynamic_lab(extraction_step, patch_shape, F.number_train_images, F.type_number)
+
+    total_batches = int(patches_test.shape[0] / F.batch_size)
+
+    # Array to store the prediction results
+    predictions_test = np.zeros((patches_test.shape[0], patch_shape[0], patch_shape[1]))
+    print("max and min of patches_test:", np.min(patches_test), np.max(patches_test))
+    print("Total number of Batches: ", total_batches)
+
+    # Batch wise prediction
+    for batch in range(total_batches):
+        patches_feed = patches_test[batch * F.batch_size:(batch + 1) * F.batch_size, :, :, :]
+        preds = sess.run(output, feed_dict={test_patches: patches_feed})
+        predictions_test[batch * F.batch_size:(batch + 1) * F.batch_size, :, :] = preds
+        print(("Processed_batch:[%8d/%8d]") % (batch, total_batches))
+
+    print("All patches Predicted")
+    print("Shape of predictions_test, min and max:",
+          predictions_test.shape, np.min(predictions_test), np.max(predictions_test))
+
+    # To stitch the image back
+    images_pred = recompose2D_overlap(predictions_test, 3328, 3328, extraction_step[0],extraction_step[1])
+
+    print("Shape of Predicted Output Groundtruth Images:", images_pred.shape,
+          np.min(images_pred), np.max(images_pred), np.mean(images_pred), np.mean(labels_test))
+
+    for i in range(F.number_test_images):
+        save_image(F.results_dir, images_pred[i], epoch_num, i)
+
+    # Evaluation
+    pred2d = np.reshape(images_pred, (images_pred.shape[0] * 3328 * 3328))
+    lab2d = np.reshape(labels_test, (labels_test.shape[0] * 3328 * 3328))
+    iou_sum = 0
+    for i in range(F.number_test_images):
+        iou = compute_iou(images_pred[i], labels_test[i])
+        iou_sum = iou_sum + iou
+    avg_iou = iou_sum / F.number_test_images
+
+    F1_score = f1_score(lab2d, pred2d, [0, 1], average=None)
+    print("Testing model at epoch {} ... ".format(epoch_num))
+    print("\tBackground:", F1_score[0])
+    print("\tTest Class:", F1_score[1])
+    print("\tIOU:", avg_iou)
+
+    return F1_score[0], F1_score[1], avg_iou
 
 
 

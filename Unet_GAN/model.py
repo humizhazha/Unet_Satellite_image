@@ -328,16 +328,17 @@ class model(object):
 
         # save the loss for each epoch
         with open(os.path.join(F.results_dir, 'Train_loss_CE.txt'), 'a') as f:
-            f.write('%.2e \n' % total_train_loss_CE)
+            f.write('%.4e \n' % total_train_loss_CE)
         with open(os.path.join(F.results_dir, 'Train_loss_UL.txt'), 'a') as f:
-            f.write('%.2e \n' % total_train_loss_UL)
+            f.write('%.4e \n' % total_train_loss_UL)
         with open(os.path.join(F.results_dir, 'Train_loss_FK.txt'), 'a') as f:
-            f.write('%.2e \n' % total_train_loss_FK)
+            f.write('%.4e \n' % total_train_loss_FK)
         with open(os.path.join(F.results_dir, 'Train_loss_FM.txt'), 'a') as f:
-            f.write('%.2e \n' % total_gen_FMloss)
+            f.write('%.4e \n' % total_gen_FMloss)
 
         # Save the curret model
-        save_model(F.checkpoint_dir, self.sess, self.saver)
+        save_model(F.checkpoint_dir, epoch, self.sess, self.saver)
+
         if epoch % F.validation_epochs == 0:
             avg_train_loss_CE = total_train_loss_CE / (idx * 1.0)
             avg_train_loss_UL = total_train_loss_UL / (idx * 1.0)
@@ -391,22 +392,23 @@ class model(object):
             # To Save the best model
             if (max_par < F1_score[1]):
                 max_par =  F1_score[1]
-                save_model(F.best_checkpoint_dir, self.sess, self.saver)
+                save_model(F.checkpoint_dir, epoch, self.sess, self.saver)
                 print("Best checkpoint updated from validation results.")
 
             # To save the losses for plotting
             print("Average Validation Loss:", avg_val_loss)
             with open(os.path.join(F.results_dir, 'Avg_Val_loss_GAN.txt'), 'a') as f:
-                f.write('%.2e \n' % avg_val_loss)
+                f.write('%.4e \n' % avg_val_loss)
             with open(os.path.join(F.results_dir, 'Avg_Train_loss_CE.txt'), 'a') as f:
-                f.write('%.2e \n' % avg_train_loss_CE)
+                f.write('%.4e \n' % avg_train_loss_CE)
             with open(os.path.join(F.results_dir, 'Avg_Train_loss_UL.txt'), 'a') as f:
-                f.write('%.2e \n' % avg_train_loss_UL)
+                f.write('%.4e \n' % avg_train_loss_UL)
             with open(os.path.join(F.results_dir, 'Avg_Train_loss_FK.txt'), 'a') as f:
-                f.write('%.2e \n' % avg_train_loss_FK)
+                f.write('%.4e \n' % avg_train_loss_FK)
             with open(os.path.join(F.results_dir, 'Avg_Train_loss_FM.txt'), 'a') as f:
-                f.write('%.2e \n' % avg_gen_FMloss)
+                f.write('%.4e \n' % avg_gen_FMloss)
     return
+
 
 
 """
@@ -552,7 +554,7 @@ def preprocess_dynamic_unlab(dir,extraction_step,patch_shape,num_images_training
     #
     # unlabel_vols = unlabel_vols/127.5 -1.
     x=get_patches_unlab(unlabel_vols, extraction_step, patch_shape,type_class,num_images_training_unlab)
-    print("Total Extracted Unlabelled Patches Shape:",x.shape)
+    print("Total Extracted Unlabelled Patches Shape:", x.shape)
     return x
 
 class dataset(object):

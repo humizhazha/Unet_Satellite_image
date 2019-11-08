@@ -189,8 +189,7 @@ def get_patches_lab(threeband_vols,label_vols, extraction_step,
 """
 To preprocess the labeled training data
 """
-def preprocess_dynamic_lab(dir,num_classes, extraction_step,patch_shape,num_images_training, type,
-                                validating=False,testing=False,num_images_testing=7):
+def preprocess_dynamic_lab(extraction_step,patch_shape,num_images_training, type):
 
     f = h5py.File(os.path.join(F.data_directory, 'test.h5'), 'r')
     test_vols = np.array(f['test'])[:, 2]
@@ -252,10 +251,8 @@ def test(patch_shape,extraction_step):
 
 def test_checkpoint(sess, epoch_num, patch_shape, extraction_step, test_patches, phase, output):
     # Get patches from test images
-    patches_test, labels_test = preprocess_dynamic_lab(F.data_directory,
-                                                       F.num_classes, extraction_step, patch_shape,
-                                                       F.number_train_images, F.type_number, validating=F.training,
-                                                       testing=F.testing, num_images_testing=F.number_test_images)
+    patches_test, labels_test = preprocess_dynamic_lab(extraction_step, patch_shape,
+                                                       F.number_train_images, F.type_number)
     total_batches = int(patches_test.shape[0] / F.batch_size)
 
     # Array to store the prediction results
