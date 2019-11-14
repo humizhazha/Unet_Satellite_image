@@ -1,5 +1,7 @@
 from __future__ import division
 import os
+from six.moves import xrange
+
 import tensorflow as tf
 import numpy as np
 from sklearn.metrics import f1_score
@@ -16,8 +18,9 @@ from evaluate_iou import *
 F = tf.app.flags.FLAGS
 
 
-def save_image(output_dir, image, index):
-    pickle_fname = 'predicted_image_{}.pickle'.format(index)
+
+def save_image(output_dir, image, epoch_num, file_index):
+    pickle_fname = 'predicted_image_{}_e{}.pickle'.format(file_index, epoch_num)
     pickle_fpath = os.path.join(output_dir, pickle_fname)
     pickle.dump(image,  open(pickle_fpath, 'wb'))
 
@@ -94,15 +97,14 @@ def extract_patches(volume, patch_shape, extraction_step,datype='float32'):
 
 
 """
-To extract labeled patches from array of 3D labeled images
+To extract labeled patches from array of 2D labeled images for testing 
 """
-def get_patches_lab(threeband_vols,label_vols, extraction_step,
-                    patch_shape, num_images_training):
+def get_patches_lab(threeband_vols, label_vols, extraction_step, patch_shape, num_test_images):
     patch_shape_1d = patch_shape[0]
     # Extract patches from input volumes and ground truth
     x = np.zeros((0, patch_shape_1d, patch_shape_1d, 2), dtype="float32")
     y = np.zeros((0, patch_shape_1d, patch_shape_1d), dtype="uint8")
-    for idx in range(num_images_training):
+    for idx in range(num_test_images):
         y_length = len(y)
         print(("Extracting Label Patches from Image %2d ....") % (1 + idx))
         label_patches = extract_patches(label_vols[idx], patch_shape, extraction_step, datype="uint8")
@@ -128,12 +130,12 @@ def get_patches_lab(threeband_vols,label_vols, extraction_step,
 """
 To preprocess the labeled training data
 """
-def preprocess_dynamic_lab(extraction_step, patch_shape, num_images_training, type):
+def preprocess_dynamic_lab(extraction_step, patch_shape, num_test_images, type):
     f = h5py.File(os.path.join(F.data_directory, 'test.h5'), 'r')
     test_vols = np.array(f['test'])[:, 2] # choose the last band
     label = np.array(f['test_mask'])[:, type]
 
-    x,y = get_patches_lab(test_vols, label, extraction_step, patch_shape, num_images_training=num_images_training)
+    x,y = get_patches_lab(test_vols, label, extraction_step, patch_shape, num_test_images=num_test_images)
     print("Total Extracted Test Patches Shape:",x.shape,y.shape)
     return x, label
 
@@ -180,7 +182,7 @@ def test(patch_shape, extraction_step):
                     return
 
                 bg_f1score, fg_f1score, avg_uoi = \
-                  test_checkpoint(sess, epoch_num, patch_shape, extraction_step, test_patches, phase, output)
+                  test_checkpoint(sess, epoch_num, patch_shape, extraction_step, test_patches, output)
                 with open(bg_f1score_fpath, 'a') as f:
                     f.write('%.4e \n' % bg_f1score)
                 with open(fg_f1score_fpath, 'a') as f:
@@ -190,11 +192,11 @@ def test(patch_shape, extraction_step):
     return
 
 
-def test_checkpoint(sess, epoch_num, patch_shape, extraction_step, test_patches, phase, output):
+def test_checkpoint(sess, epoch_num, patch_shape, extraction_step, test_patches, output):
 
     # Get patches from test images
     patches_test, labels_test = \
-        preprocess_dynamic_lab(extraction_step, patch_shape, F.number_train_images, F.type_number)
+        preprocess_dynamic_lab(extraction_step, patch_shape, F.number_test_images, F.type_number)
 
     total_batches = int(patches_test.shape[0] / F.batch_size)
 
@@ -220,8 +222,8 @@ def test_checkpoint(sess, epoch_num, patch_shape, extraction_step, test_patches,
     print("Shape of Predicted Output Groundtruth Images:", images_pred.shape,
           np.min(images_pred), np.max(images_pred), np.mean(images_pred), np.mean(labels_test))
 
-    for i in range(F.number_test_images):
-        save_image(F.results_dir, images_pred[i], epoch_num, i)
+    # for i in range(F.number_test_images):
+    #     save_image(F.results_dir, images_pred[i], epoch_num, i)
 
     # Evaluation
     pred2d = np.reshape(images_pred, (images_pred.shape[0] * 3328 * 3328))
